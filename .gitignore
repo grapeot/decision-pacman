@@ -10,3 +10,4 @@ runs/
 .venv/
 __pycache__/
 tmp/
+data/

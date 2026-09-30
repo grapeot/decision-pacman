@@ -36,6 +36,12 @@ Record a clip (needs Playwright's Chromium and ffmpeg):
 npm run record -- --model tev1:4b --seconds 30 --out docs/media/demo.mp4
 ```
 
+Generate labeled training states with a teacher model on any OpenAI-compatible endpoint (set `TEACHER_BASE_URL` and `TEACHER_MODEL` in `.env`):
+
+```sh
+npm run gen-data -- --player teacher --seconds 30 --seed 1000
+```
+
 Run the tests with `npm test`.
 
 ## Try the probes
