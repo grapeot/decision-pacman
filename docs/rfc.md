@@ -114,13 +114,17 @@ Baselines: `random` (uniform over legal options) and `greedy` (nearest pellet, a
 
 ## Stage 3: fine-tuning
 
-**Starting point.** Tev1 is an ordinary LoRA fine-tune of Qwen3.5 that reads answers from the language-model head at the answer position, with an MIT-licensed recipe. Its 4B weights are published, but the 0.8B weights have so far been seen only as Ollama GGUF files. The default plan is therefore to fine-tune `Qwen/Qwen3.5-0.8B` with the Tev1 recipe's prompt format and settings (LoRA rank 8, lr 5e-5, 2,048-token limit), on our Pac-Man data mixed with a slice of Tev1's general data to limit forgetting. If Tev1 0.8B weights turn up in safetensors form, starting from them is preferred.
+**Prompt parity with Ollama.** Ollama builds the scoring prompt in `decision/systemone.go`. It sends one user message, `{"context": <state>, "schema": [{"name", "description", "choices": [{"code": "A", "value", "description"}, ...]}]}` followed by `\n\nRequested field: "move"`, after the model's system prompt. The chat template is applied with thinking off. It then reads the logits of the option letters at the next position and takes a softmax over those letters only. `training/prompt.py` reproduces this byte for byte, including Go's HTML-safe JSON escapes and Tev1's system prompt. On 50 validation states, the served Q8_0 model and the bf16 training weights agree to within 0.027 in probability (median 0.010), and pick the same option on 48 of 50. The two that differ are near-ties.
 
-**Prompt format.** Training examples must use exactly the prompt Ollama builds for Tev1 from `state` and `questions`, or the served model will see a different input than it trained on. The Tev1 repo documents the format. Before training, a check renders a few requests both ways and compares them.
+**Base model.** `Qwen/Qwen3.5-0.8B`, the base of `tev1:0.8b` (Ollama reports 752M parameters). Tev1's own 0.8B weights are published only as GGUF.
 
-**Hardware.** One RTX 5090 (32 GB) is enough for LoRA on 0.8B, and also for a full fine-tune. The GPU host also serves the teacher, so data generation finishes before training takes the GPU.
+**Data.** `training/build_sft.py` turns oracle-labeled states into rows with the Ollama messages and a soft target: softmax of each option's oracle value divided by a temperature of 50 points (about five pellets). Exact duplicate states are removed. v1 data: 31,585 training rows (oracle 17,482, greedy 8,075, random 6,028 as players) and 4,975 validation rows from separate seeds.
 
-**Serving.** Any server that speaks the `/v1/systemone` subset works, including our own, for example an MLX server on Apple silicon. The simplest first path is GGUF imported into Ollama with a Modelfile. Whether Ollama's decision runner accepts a user-imported model is not yet verified. Fallbacks, in order: serve the GGUF through ollaya, which accepts custom decision models through Modelfiles, or run a small scoring server that implements the `/v1/systemone` subset we use by reading option-token logits. The client only needs a base URL and model name, so the game does not change.
+**Training.** `training/train.py`: LoRA (rank 16, alpha 32) on every language-side linear layer, lr 1e-4 cosine with 3% warmup, batch 32, 2 epochs (1,975 steps), bf16, one RTX 5090. The loss is cross-entropy between the soft target and the softmax over option-letter logits at the answer position. Only that position is projected through the output layer, so memory stays small despite the 248k-token vocabulary. A startup check compares that projection with the model's own logits. Training takes about 40 minutes.
+
+**Serving.** `training/export_gguf.sh` merges the adapter and converts to Q8_0 GGUF with llama.cpp. The GGUF is imported through Ollama's `/api/create` with Tev1's system prompt, as `pacman-0.8b`. Ollama 0.35.0 does not accept `CAPABILITY` in a Modelfile, but it serves `/v1/systemone` for the imported model anyway. The game needs no change beyond the model name.
+
+**GPU use.** The GPU host serves the teacher model on all three cards. Training borrows one card with the cluster's lease script, which drops that replica from the router, and then returns it. The other two replicas keep serving.
 
 ## Stage 4: evaluation
 

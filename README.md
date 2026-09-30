@@ -9,7 +9,7 @@ The project goes in four stages:
 3. Fine-tuning a 0.8B decision model on that data.
 4. Evaluating the fine-tuned model against off-the-shelf models on held-out games.
 
-**Status:** Stage 1 works. The game runs in the browser with `tev1:4b` playing in real time. A 30-second recording is in [`docs/media/demo_tev1_4b.mp4`](docs/media/demo_tev1_4b.mp4). The plan is in [`docs/prd.md`](docs/prd.md) and [`docs/rfc.md`](docs/rfc.md). The measurements are in [`docs/model_evaluation.md`](docs/model_evaluation.md).
+**Status:** Stages 1 to 3 work. A 0.8B model fine-tuned on search-oracle labels averages 456 pellets per game at 63 ms per decision, against 69 for the same-size off-the-shelf `tev1:0.8b` and 148 for `tev1:4b`. Compare the two 30-second recordings on the same seed: [`demo_tev1_4b.mp4`](docs/media/demo_tev1_4b.mp4) (off-the-shelf 4B) and [`demo_pacman_08b.mp4`](docs/media/demo_pacman_08b.mp4) (fine-tuned 0.8B). The plan is in [`docs/prd.md`](docs/prd.md) and [`docs/rfc.md`](docs/rfc.md). The measurements are in [`docs/model_evaluation.md`](docs/model_evaluation.md).
 
 ## Run it
 
@@ -44,6 +44,17 @@ npm run gen-data -- --player random --games 20 --seed 2000   # other players, or
 ```
 
 A chat model on any OpenAI-compatible endpoint can play or label instead (`--player teacher --labeler teacher`, with `TEACHER_BASE_URL` and `TEACHER_MODEL` in `.env`).
+
+Fine-tune a model on the labeled states (a CUDA GPU; see `training/pyproject.toml`), export it to GGUF, and score it through Ollama:
+
+```sh
+python3 training/build_sft.py --data data/v1 --out data/sft
+python training/train.py --data data/sft --out runs/ft_v1 --epochs 2
+training/export_gguf.sh runs/ft_v1/adapter runs/ft_v1/model-q8_0.gguf /path/to/llama.cpp
+python3 training/score_ollama.py --model your-model --data data/v1/val --n 1000
+```
+
+`training/prompt.py` renders prompts exactly as Ollama's `/v1/systemone` does, so the served model sees what it was trained on. Import the GGUF with Ollama's `/api/create` and the same system prompt as `tev1`.
 
 Run the tests with `npm test`.
 

@@ -7,6 +7,7 @@ This document records how we chose the in-game model, the fine-tuning target, an
 - **In-game default: `tev1:4b`.** It was the best off-the-shelf trade-off on this machine: about 160 ms per decision and 0.88 accuracy on the probe, faster and more accurate than `nimble`.
 - **Fine-tuning target: a 0.8B model.** `tev1:0.8b` answers in about 65 ms, which is close to real time, but scores 0.40 on the probe, which is near chance. Fast and weak is the case where fine-tuning has the most to show.
 - **Labels: a search oracle, not an LLM.** An agent that rolls the game engine forward 5 seconds for each option survived every 5-minute evaluation game and averaged 1,109 pellets, at 5 ms of local CPU per decision. Qwen3.8-27B looked strong on the synthetic probe (0.97), but as a player it lost all three lives within 39 to 93 seconds in 5-minute games.
+- **Fine-tuning works.** A 0.8B model fine-tuned on 31,585 oracle-labeled states (`pacman-0.8b`) averaged 456 pellets and 94 s per game at 63 ms per decision. That is 6.6 times off-the-shelf `tev1:0.8b` at the same speed, 3 times `tev1:4b`, and more than twice the scripted greedy rule. The oracle it learned from still averages 1,109.
 - **State representation matters more than model size.** Compact per-direction facts beat a full ASCII board in both latency and decision quality. Quantization and prefix caching did not reduce latency.
 
 The probe uses synthetic scenarios with one clearly correct move each. It measures latency, output reliability, and basic judgment. It does not measure how well a model plays. Experiments 8 to 10 measure play in the game itself and carry more weight.
@@ -149,14 +150,47 @@ A level has 244 pellets, so 1,109 is about four and a half levels. Horizons past
 | oracle-3s | 971, 1,178, 1,211 | 1 death per game, all reached the cap |
 | Qwen3.8-27B (features, thinking off) | 361, 361, 180 | all lives lost at 74, 93, 39 s |
 
+### 11. Fine-tuned 0.8B (`pacman-0.8b`)
+
+`Qwen/Qwen3.5-0.8B` fine-tuned with LoRA on oracle-labeled states in the exact prompt format Ollama uses (see RFC, Stage 3). It is served as Q8_0 GGUF through Ollama like the stock models.
+
+**Agreement with the oracle**, 1,000 validation states from seeds 900-999 (never used for training), scored through Ollama. "Decisive" means the oracle's soft target puts more than 0.9 on one option.
+
+| Model | Agreement | On decisive states | Cross-entropy | Latency p50 |
+|---|---|---|---|---|
+| Qwen3.5-0.8B before training (training-side eval, 2,000 states) | 28.8% | 30.6% | 1.43 | - |
+| `tev1:0.8b` | 31.8% | 29.5% | 1.22 | 73 ms |
+| `tev1:4b` | 38.4% | 40.7% | 1.29 | 205 ms |
+| **`pacman-0.8b`** | **53.9%** | **57.5%** | **1.05** | **59 ms** |
+
+Validation agreement rose from 29% to 53% within 1,200 of 1,975 steps and then flattened. The plateau is likely the information gap: many oracle decisions depend on facts the features encoder does not include.
+
+**In-game**, evaluation seeds 100-109, realtime clock, 1x speed, 5-minute cap:
+
+| Player | Mean pellets | Mean score | Mean survival | Levels cleared | Decision p50 | Stale |
+|---|---|---|---|---|---|---|
+| random | 30 | 311 | 37 s | 0 of 10 | 0 ms | 0% |
+| `tev1:0.8b` | 69 | 716 | 35 s | 0 of 10 | 62 ms | 4% |
+| `tev1:4b` | 148 | 1,660 | 55 s | 0 of 10 | 202 ms | 11% |
+| greedy (scripted) | 201 | 2,623 | 63 s | 0 of 10 | 0 ms | 0% |
+| **`pacman-0.8b`** | **456** | **7,467** | **94 s** | **8 of 10** | **63 ms** | **3%** |
+| `oracle-5s` (teacher) | 1,109 | 19,789 | 300 s (cap) | 10 of 10 | 5 ms | 0% |
+
+Per game, `pacman-0.8b` ate 239, 400, 417, 649, 482, 683, 587, 420, 240, and 446 pellets. The best game reached level 3.
+
+**Parity between training and serving.** On 50 validation states, the Q8_0 model in Ollama and the bf16 weights in PyTorch agree to within 0.027 in probability (median 0.010), and pick the same option on 48 of 50. The two that differ are near-ties.
+
+**Recordings**, both seed 100 at 1x for 30 s: `docs/media/demo_tev1_4b.mp4` (1,250 points, 101 pellets, one life lost) and `docs/media/demo_pacman_08b.mp4` (2,660 points, 170 pellets, no lives lost).
+
 ## Conclusions
 
 1. Use `tev1:4b` for the real-time demo. At about 160 ms, a decision is shorter than the typical 400 ms to 1.2 s Pac-Man needs to reach the next junction at arcade speed.
-2. Use a 0.8B model as the fine-tuning target and `tev1:0.8b` as its off-the-shelf baseline.
+2. Use a 0.8B model as the fine-tuning target and `tev1:0.8b` as its off-the-shelf baseline. The fine-tuned `pacman-0.8b` beats every off-the-shelf model and the scripted rule in play, at `tev1:0.8b`'s latency.
 3. Label training data with `oracle-5s`. It is far stronger than any model we tried and costs milliseconds of local CPU per label. It also scores every option, so labels can be soft: ties become visible instead of being broken arbitrarily. Keep Qwen3.8-27B only as a comparison point.
 4. Mind the information gap. The oracle sees the full game state, and the student sees only its encoding. Decisions that depend on facts the encoding drops cannot be learned from it. Measure the student against the oracle on held-out states to see how large this gap is.
 5. Invest in the encoder before the model. Keep states compact and factual, and measure every encoder change in tokens as well as accuracy.
 
 ## Pending
 
-- More in-game seeds for `tev1:4b`, plus `tev1:0.8b` and `nimble` in the same setup.
+- Close the gap to the oracle: enrich the encoder (ghost identities, second-nearest ghost, longer-range pellet counts), then run a DAgger round with states from `pacman-0.8b`'s own games.
+- A full-map student: fine-tune on `ascii-full` with oracle labels and compare.

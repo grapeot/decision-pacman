@@ -70,7 +70,7 @@ Ollama's launch post shows a Pac-Man example, but it is a recorded, turn-based r
 1. **Stage 1:** `tev1:4b` drives the browser game at a steady 30 ticks per second with at least 4 decisions per second, the HUD shows live latency and probabilities, and a recording exists.
 2. **Stage 1:** Over 10 seeded headless games in real-time mode, `tev1:4b` clearly beats a random-legal-move baseline in pellets eaten.
 3. **Stage 2:** At least 20,000 labeled states from training seeds only, with per-option values.
-4. **Stage 4:** The fine-tuned 0.8B model stays under 100 ms per decision and matches or beats off-the-shelf `tev1:4b` in pellets eaten and survival on held-out seeds.
+4. **Stage 4:** The fine-tuned 0.8B model stays under 100 ms per decision and matches or beats off-the-shelf `tev1:4b` in pellets eaten and survival on held-out seeds. Met on 2026-09-30: 63 ms, 456 pellets and 94 s against 148 pellets and 55 s (`docs/model_evaluation.md`, experiment 11).
 
 ## Open questions
 
