@@ -36,11 +36,14 @@ Record a clip (needs Playwright's Chromium and ffmpeg):
 npm run record -- --model tev1:4b --seconds 30 --out docs/media/demo.mp4
 ```
 
-Generate labeled training states with a teacher model on any OpenAI-compatible endpoint (set `TEACHER_BASE_URL` and `TEACHER_MODEL` in `.env`):
+Generate labeled training states. By default a search oracle plays and labels every decision with a value per option:
 
 ```sh
-npm run gen-data -- --player teacher --seconds 30 --seed 1000
+npm run gen-data -- --games 20 --seed 1000
+npm run gen-data -- --player random --games 20 --seed 2000   # other players, oracle labels
 ```
+
+A chat model on any OpenAI-compatible endpoint can play or label instead (`--player teacher --labeler teacher`, with `TEACHER_BASE_URL` and `TEACHER_MODEL` in `.env`).
 
 Run the tests with `npm test`.
 
