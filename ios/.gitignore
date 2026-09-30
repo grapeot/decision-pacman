@@ -1,0 +1,6 @@
+Vendor/
+*.xcodeproj/
+build/
+DerivedData/
+DecisionPacman/Web/
+DecisionPacman/Info.plist

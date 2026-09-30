@@ -1,6 +1,7 @@
 import { AgentLoop, type DecisionRecord } from "./agent/loop.ts";
 import { DecisionApiError } from "./agent/client.ts";
 import { systemOnePolicy } from "./agent/policies.ts";
+import { nativeBridge, nativePolicy } from "./agent/native.ts";
 import { findDecisionPoint } from "./engine/decision.ts";
 import { createGame, step, TPS } from "./engine/game.ts";
 import { opposite, type Dir, type GameState, type StepInput } from "./engine/types.ts";
@@ -11,10 +12,13 @@ const params = new URLSearchParams(location.search);
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
 // ---- configuration -----------------------------------------------------------
+// Inside the iOS app, decisions go to the on-device model instead of an HTTP endpoint.
+const bridge = nativeBridge();
+const ON_DEVICE_MODEL = "pacman-0.8b (on device)";
 const defaultEndpoint = import.meta.env.DEV ? "/decide" : (import.meta.env.VITE_DECISION_BASE_URL ?? "http://localhost:11434");
 const config = {
   mode: (params.get("mode") ?? "ai") as "ai" | "human",
-  model: params.get("model") ?? import.meta.env.VITE_DEFAULT_MODEL ?? "tev1:4b",
+  model: bridge ? ON_DEVICE_MODEL : (params.get("model") ?? import.meta.env.VITE_DEFAULT_MODEL ?? "tev1:4b"),
   encoder: params.get("encoder") ?? DEFAULT_ENCODER,
   speed: Number(params.get("speed") ?? "1"),
   endpoint: params.get("endpoint") ?? defaultEndpoint,
@@ -26,8 +30,10 @@ const canvas = $<HTMLCanvasElement>("game");
 const dpr = Math.min(2, window.devicePixelRatio || 1);
 canvas.width = WIDTH * dpr;
 canvas.height = HEIGHT * dpr;
-canvas.style.width = `${WIDTH}px`;
-canvas.style.height = `${HEIGHT}px`;
+// Scale down to fit narrow screens while keeping the aspect ratio.
+canvas.style.width = "100%";
+canvas.style.maxWidth = `${WIDTH}px`;
+canvas.style.height = "auto";
 const ctx = canvas.getContext("2d")!;
 
 // ---- game state ----------------------------------------------------------------
@@ -52,6 +58,7 @@ function restart(): void {
 
 // ---- agent -------------------------------------------------------------------
 function makePolicy() {
+  if (bridge) return nativePolicy(bridge, ON_DEVICE_MODEL);
   return systemOnePolicy({ baseUrl: config.endpoint, model: config.model });
 }
 
@@ -199,6 +206,24 @@ window.addEventListener("keydown", (e) => {
   else queue({ intent: d });
 });
 
+// Swipes steer Pac-Man in keyboard mode on touch screens.
+let touchStart: { x: number; y: number } | null = null;
+canvas.addEventListener("touchstart", (e) => {
+  const t = e.changedTouches[0];
+  touchStart = { x: t.clientX, y: t.clientY };
+}, { passive: true });
+canvas.addEventListener("touchend", (e) => {
+  if (!touchStart || config.mode !== "human") return;
+  const t = e.changedTouches[0];
+  const dx = t.clientX - touchStart.x;
+  const dy = t.clientY - touchStart.y;
+  touchStart = null;
+  if (Math.max(Math.abs(dx), Math.abs(dy)) < 20) return;
+  const d: Dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : dy > 0 ? "down" : "up";
+  if (game.pac.dir && d === opposite(game.pac.dir)) queue({ reverse: true });
+  else queue({ intent: d });
+}, { passive: true });
+
 function togglePause(): void {
   paused = !paused;
   $("pause").textContent = paused ? "Resume" : "Pause";
@@ -213,6 +238,11 @@ function setupControls(): void {
   const endpoint = $<HTMLInputElement>("endpoint");
 
   for (const name of Object.keys(ENCODERS)) encoder.add(new Option(name, name));
+  if (bridge) {
+    // The on-device model is fixed; hide the HTTP endpoint and model fields.
+    model.disabled = true;
+    for (const el of [endpoint, endpoint.previousElementSibling]) (el as HTMLElement).style.display = "none";
+  }
   mode.value = config.mode;
   model.value = config.model;
   encoder.value = config.encoder;
@@ -254,6 +284,7 @@ function setupControls(): void {
 }
 
 async function loadModels(): Promise<void> {
+  if (bridge) return;
   try {
     const res = await fetch(`${config.endpoint.replace(/\/$/, "")}/api/tags`);
     const body = (await res.json()) as { models?: { name: string }[] };
@@ -263,6 +294,21 @@ async function loadModels(): Promise<void> {
   } catch {
     // The model list is a convenience; decisions report their own errors.
   }
+}
+
+// Inside the iOS app, report game status so the run can be checked from the Mac.
+const statusBridge = (window as unknown as { webkit?: { messageHandlers?: { status?: { postMessage(m: unknown): void } } } })
+  .webkit?.messageHandlers?.status;
+if (statusBridge) {
+  setInterval(() => {
+    const recent = records.slice(-50).map((r) => r.latencyMs).sort((a, b) => a - b);
+    statusBridge.postMessage({
+      tick: game.tick, phase: game.phase, score: game.score, lives: game.lives, level: game.level,
+      pelletsLeft: game.foodLeft, decisions: records.length, stale: records.filter((r) => r.stale).length,
+      latencyP50: recent.length ? recent[Math.floor(recent.length / 2)] : null,
+      ticksPerSecond: tickTimes.length, mode: config.mode, model: config.model,
+    });
+  }, 5000);
 }
 
 setupControls();
