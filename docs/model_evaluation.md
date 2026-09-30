@@ -54,13 +54,19 @@ Each of 40 scenarios gives, for every legal exit, the distance to the nearest gh
 | Ollama | tev1:0.8b (bf16) | 65 ms | 78 ms | 0.40 | 8/13 |
 | ollaya | laya:en (421M encoder) | 20 ms | 25 ms | 0.40 | 11/13 |
 | ollaya | kev:0.8b | 729 ms | 970 ms | 0.40 | 9/13 |
+| ollaya | winnow:e4b (GGUF, Metal) | 154 ms | 170 ms | 0.78 | 9/13 |
+| ollaya | decider:0.8b | 330 ms | 447 ms | 0.35 | 5/13 |
+| ollaya | decider (2B) | 681 ms | 955 ms | 0.60 | 8/13 |
+| ollaya | decider:4b | 2,186 ms | 2,724 ms | 0.65 | 12/13 |
+| ollaya | kev (4B) | 2,052 ms | 2,672 ms | 0.50 | 13/13 |
+| ollaya | kev:9b | 3,940 ms | 4,721 ms | 0.57 | 13/13 |
 
 Random choice over 2–4 legal options scores about 0.36 on this set. Observations:
 
 - `tev1:4b` is both faster and more accurate than `nimble`. Its advantage is in normal-mode scenarios, where it has to trade pellets against a nearby ghost.
 - q4 quantization did not speed anything up. A decision outputs a single token, so the time goes into reading the input, which is limited by compute, not memory bandwidth.
 - The 0.8B-class models and `laya:en` are near chance. `laya:en` does well when ghosts are frightened (move toward the ghost) and poorly otherwise.
-- `kev:0.8b` ran on ollaya's CPU path on this Mac, which makes it too slow for real-time play here, whatever its accuracy.
+- On this Mac, ollaya runs `kev` and `decider` on the CPU, which puts them at 0.3–4 s per decision, too slow for real-time play here whatever their accuracy. `winnow:e4b` ships as GGUF and runs on llama.cpp with Metal. It is the one ollaya model in `tev1:4b`'s latency range, at 0.78 against 0.88.
 
 ### 5. Plain English instead of JSON
 
@@ -103,5 +109,4 @@ tev1:4b plays far above random and below the scripted baseline, which reads the 
 
 ## Pending
 
-- ollaya models still downloading at the time of writing: `kev` (4B), `kev:9b`, `decider` (0.8B, 2B, 4B), and `winnow:e4b`. Their probe rows will be added here.
 - More in-game seeds for tev1:4b, plus tev1:0.8b and nimble in the same setup.
