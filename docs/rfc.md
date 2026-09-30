@@ -110,7 +110,9 @@ Baselines: `random` (uniform over legal options) and `greedy` (nearest pellet, a
 
 **Throughput.** Concurrency is configurable, default 4. The teacher endpoint is shared with other work, so generation runs in resumable batches. 20,000 states at about 10 per second is under an hour.
 
-**Splits.** Train, validation, and evaluation use disjoint seed ranges. Evaluation seeds never produce training data.
+**Splits.** Train, validation, and evaluation use disjoint seed ranges: evaluation 100-199, validation 900-999, training 1000 and up. `scripts/gen_teacher_data.ts` refuses evaluation seeds.
+
+**Status.** The teacher policy, the shared runner, and `scripts/gen_teacher_data.ts` exist, and a 30-second smoke test passed (see `docs/working.md`). The lookahead oracle cross-check is not built yet.
 
 ## Stage 3: fine-tuning
 

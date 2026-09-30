@@ -29,6 +29,14 @@
 - Recorded `docs/media/demo_tev1_4b.mp4` (30 s, seed 100): 1250 points and 101 pellets, one life lost near the end.
 - Tests: 28 passing (engine, planned turns, decision points, encoders).
 
+### 2026-09-30 (Stage 2 smoke test)
+
+- Moved the game-driving loop into `src/sim/runner.ts`, shared by the headless runner and data generation. Greedy results were identical before and after (10 games, 200.7 pellets).
+- Added the teacher policy (`src/agent/teacher.ts`): an OpenAI-compatible chat model sees the student's encoded state and answers `{"move", "reason"}`. An unparseable or illegal answer drops the state.
+- Added `scripts/gen_teacher_data.ts`: a player drives the game in lockstep and a labeler labels every decision state. Records use schema `decision-pacman/teacher-v1` under `data/` (gitignored). Seeds 100-199 are refused.
+- Smoke test (player and labeler both Qwen3.8-27B, thinking off, seed 1000, 30 s of game time): 144 labeled states in 46 s wall time, 0 failures, label latency p50 301 ms and p90 368 ms, 3.1 labels per second sequential. The teacher scored 2470 with 155 pellets and 1 death in those 30 s. Labels: left 53, up 35, down 25, right 22, back 9. It agreed with the greedy rules on 70% of states. The disagreements sampled were ties, which the teacher broke toward a power pellet.
+- Tests: 33 passing (adds teacher reply parsing and prompt tests).
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.
@@ -44,3 +52,5 @@
 - In the browser, wait one tick after queuing an answer before asking again. Otherwise the next request is planned from a state without the new turn. This alone took the browser stale rate from about 40% to 13%.
 - Do not ask during frozen phases (ready, dying). Identical states hit the server's cache and pull the latency p50 down to about 40 ms, which misrepresents the real 200 ms.
 - The greedy baseline scored 238 pellets without lookahead and 201 with it, because it decides earlier on older information. Compare baselines only within the same agent setup.
+- Many teacher states are ties: no ghost nearby and equal food on several exits. A hard label on a tie is noise for the student. Before training, either down-weight ties, keep the teacher's reason to filter them, or ask for a distribution instead of a single move.
+- Sequential lockstep labeling runs at about 3 states per second. 20,000 states would take about 2 hours on one game. Several games in parallel against the shared teacher endpoint cut that, within a concurrency cap.
