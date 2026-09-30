@@ -18,6 +18,17 @@
 - Confirmed Tev1 is a plain LoRA on Qwen3.5 with an MIT-licensed recipe. Its 4B weights are on Hugging Face. The 0.8B weights have been seen only as Ollama GGUF, so fine-tuning starts from the Qwen3.5-0.8B base.
 - Added `scripts/probe_teacher.py` and measured Qwen3.8-27B (NVFP4, OpenAI-compatible server) as a possible distillation teacher on the same scenarios. Thinking off: p50 270 ms, 40/40 parseable, 40/40 legal, accuracy 0.97. Thinking on: p50 1.1 s, accuracy 1.00, ~190 output tokens. Thinking off at concurrency 8: 16 labels/s.
 
+### 2026-09-30 (Stage 1)
+
+- Built the engine (`src/engine/`): classic maze, fixed 30 Hz step, four ghost targeting rules, scatter/chase schedule, frightened mode, ghost house, tunnel, lives, and level clear. Deterministic from a seed.
+- Added decision points (`findDecisionPoint`): the next junction on the current heading, following single-exit corners automatically.
+- Added the `features` and `ascii-window` encoders, the `/v1/systemone` client, random/greedy/model policies, and the browser agent loop.
+- Added the canvas renderer and HUD (probability bars, latency, stale rate, ticks per second, the encoded state the model sees) and keyboard play.
+- Added `scripts/run_headless.ts` (realtime and lockstep clocks, JSONL logs under `runs/`) and `scripts/record_demo.ts` (Playwright recording converted to MP4).
+- Headless, 1x speed, realtime clock, seeds 100+: random 30.3 pellets (10 games), greedy 200.7 (10 games), tev1:4b 168.7 (3 games, p50 207 ms, 10% stale).
+- Recorded `docs/media/demo_tev1_4b.mp4` (30 s, seed 100): 1250 points and 101 pellets, one life lost near the end.
+- Tests: 28 passing (engine, planned turns, decision points, encoders).
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.
@@ -27,3 +38,9 @@
 - Ollama's launch blog includes its own nimble Pac-Man example (91 ms per decision on an M5 Max, only legal moves as options). It is a recorded, turn-based replay (JSON in the page), with no code to reuse.
 - The synthetic scenarios have one clearly correct move each. They test format and basic judgment, not play on real, ambiguous game states. Teacher and student quality claims need states sampled from the engine.
 - The teacher server rejects `response_format: json_schema` (no constrained decoding), so labels come from parsing plain text. A prompt that asks for JSON was 100% parseable in 120 calls.
+- Keep "turn around now" separate from turns. When a junction exit points opposite to the current heading (after a corner), treating it as a reversal made Pac-Man dither in place. `StepInput.reverse` turns around, and `StepInput.turn` plans a turn for one specific junction tile.
+- Features must count the corridor between Pac-Man and the junction. Measuring only from the junction outward hid pellets and ghosts on the way and made "back" look closer than it was.
+- Latency has to become lookahead. Asking about a junction Pac-Man reaches before the answer returns wastes the call. The agent now asks about the junction after next once the near turn is planned and Pac-Man is within the latency distance. Stale answers fell from 22% to 10%, and pellets rose from 138 to 169.
+- In the browser, wait one tick after queuing an answer before asking again. Otherwise the next request is planned from a state without the new turn. This alone took the browser stale rate from about 40% to 13%.
+- Do not ask during frozen phases (ready, dying). Identical states hit the server's cache and pull the latency p50 down to about 40 ms, which misrepresents the real 200 ms.
+- The greedy baseline scored 238 pellets without lookahead and 201 with it, because it decides earlier on older information. Compare baselines only within the same agent setup.

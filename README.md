@@ -9,7 +9,34 @@ The project goes in four stages:
 3. Fine-tuning a 0.8B decision model on that data.
 4. Evaluating the fine-tuned model against off-the-shelf models on held-out games.
 
-**Status:** design stage. The plan is in [`docs/prd.md`](docs/prd.md) and [`docs/rfc.md`](docs/rfc.md). The model measurements behind it are in [`docs/model_evaluation.md`](docs/model_evaluation.md).
+**Status:** Stage 1 works. The game runs in the browser with `tev1:4b` playing in real time. A 30-second recording is in [`docs/media/demo_tev1_4b.mp4`](docs/media/demo_tev1_4b.mp4). The plan is in [`docs/prd.md`](docs/prd.md) and [`docs/rfc.md`](docs/rfc.md). The measurements are in [`docs/model_evaluation.md`](docs/model_evaluation.md).
+
+## Run it
+
+You need Node 20+ and Ollama 0.35+:
+
+```sh
+ollama pull tev1:4b
+npm install
+npm run dev          # open http://localhost:5173
+```
+
+The dev server forwards `/decide` to `http://localhost:11434`. Set `VITE_DECISION_BASE_URL` to use another endpoint, such as ollaya on port 11435. In the side panel you can switch models, encoders, and game speed, or take over with the keyboard.
+
+Play without a browser and write per-decision logs to `runs/`:
+
+```sh
+npm run headless -- --policy tev1:4b --games 3 --seed 100
+npm run headless -- --policy greedy --games 10    # scripted baseline
+```
+
+Record a clip (needs Playwright's Chromium and ffmpeg):
+
+```sh
+npm run record -- --model tev1:4b --seconds 30 --out docs/media/demo.mp4
+```
+
+Run the tests with `npm test`.
 
 ## Try the probes
 

@@ -59,13 +59,13 @@ The browser fetches `<base>/v1/systemone` itself. A server would add a process a
 
 The engine advances in fixed 1/30 s steps through an accumulator driven by `requestAnimationFrame`. Rendering draws the latest state every animation frame. The agent loop runs on its own async schedule. Nothing in the simulation awaits a network call, so a slow or failed request only means Pac-Man keeps following the last intent. Fixed steps keep the engine deterministic, which makes replays, tests, and headless runs reproducible.
 
-### 3. The answer is a buffered intent
+### 3. Answers become planned turns or an immediate reversal
 
-As with the arcade joystick, each answer sets a desired direction. The engine takes the turn at the first tile where it is legal, reverses immediately if asked, and otherwise keeps going. A stale answer costs a missed turn at worst, never a stop against a wall.
+An exit answer becomes a turn planned for that junction tile (`StepInput.turn`), which the engine takes when Pac-Man reaches the tile center. A "back" answer turns Pac-Man around at once (`StepInput.reverse`). The two are kept apart on purpose. After a corner, a junction exit can point opposite to the current heading, and treating it as a reversal made Pac-Man dither. Keyboard play uses an untargeted buffered direction (`StepInput.intent`) with arcade semantics. Between decisions Pac-Man keeps going and follows single-exit corners, so a stale or missing answer costs a missed turn, never a stop in a corridor.
 
-### 4. Decisions are about the next junction
+### 4. Decisions are about the next junction, with latency-sized lookahead
 
-Real choices happen at junctions. Each request asks about the next junction on the current heading, with options set to that junction's exits plus reverse. Corridors between junctions are typically 3–9 tiles, which is 400 ms to 1.2 s at arcade speed, longer than a `tev1:4b` decision. The answer therefore usually arrives before Pac-Man reaches the junction. When Pac-Man passes a junction, any in-flight answer for it is discarded. The HUD reports staleness. The first milestone may ship a simpler "current tile" mode, but the junction mode is the target.
+Real choices happen at junctions. Each request asks about the next junction on the current heading, with options set to that junction's exits plus "back". The agent keeps a moving average of decision latency and turns it into a lookahead distance (tiles Pac-Man covers while an answer is in flight, plus a margin). Suppose Pac-Man is closer to the next junction than that distance, and a turn there is already planned. Then the agent asks about the junction after it, because a new answer for the near one would arrive too late. An answer is discarded if its junction is no longer ahead. The HUD reports the stale rate. With lookahead, tev1:4b's stale rate fell from 22% to 10%.
 
 ### 5. Encoders report facts, never verdicts
 
@@ -120,7 +120,7 @@ Baselines: `random` (uniform over legal options) and `greedy` (nearest pellet, a
 
 **Hardware.** One RTX 5090 (32 GB) is enough for LoRA on 0.8B, and also for a full fine-tune. The GPU host also serves the teacher, so data generation finishes before training takes the GPU.
 
-**Serving.** The merged model goes to GGUF and is imported into Ollama with a Modelfile. Whether Ollama's decision runner accepts a user-imported model is not yet verified. Fallbacks, in order: serve the GGUF through ollaya, which accepts custom decision models through Modelfiles, or run a small scoring server that implements the `/v1/systemone` subset we use by reading option-token logits. The client only needs a base URL and model name, so the game does not change.
+**Serving.** Any server that speaks the `/v1/systemone` subset works, including our own, for example an MLX server on Apple silicon. The simplest first path is GGUF imported into Ollama with a Modelfile. Whether Ollama's decision runner accepts a user-imported model is not yet verified. Fallbacks, in order: serve the GGUF through ollaya, which accepts custom decision models through Modelfiles, or run a small scoring server that implements the `/v1/systemone` subset we use by reading option-token logits. The client only needs a base URL and model name, so the game does not change.
 
 ## Stage 4: evaluation
 
