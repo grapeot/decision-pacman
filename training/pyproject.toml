@@ -1,0 +1,12 @@
+[project]
+name = "decision-pacman-training"
+version = "0.1.0"
+description = "Fine-tune a small decision model on oracle-labeled Pac-Man states"
+requires-python = ">=3.11"
+# Training runs on a CUDA machine. The scoring and data scripts need only the standard library.
+dependencies = [
+  "torch>=2.8",
+  "transformers>=5.5",
+  "peft>=0.17",
+  "unsloth>=2026.9",
+]
