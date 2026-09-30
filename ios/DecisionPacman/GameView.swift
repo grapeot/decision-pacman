@@ -9,6 +9,8 @@ struct GameView: UIViewRepresentable {
         config.setURLSchemeHandler(BundleSchemeHandler(), forURLScheme: "app")
         config.userContentController.addScriptMessageHandler(DecideHandler(), contentWorld: .page, name: "decide")
         config.userContentController.add(StatusHandler(), name: "status")
+        // Let the game's Web Audio music start without waiting for a tap.
+        config.mediaTypesRequiringUserActionForPlayback = []
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.isOpaque = false
         webView.backgroundColor = .black

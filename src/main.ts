@@ -2,6 +2,7 @@ import { AgentLoop, type DecisionRecord } from "./agent/loop.ts";
 import { DecisionApiError } from "./agent/client.ts";
 import { systemOnePolicy } from "./agent/policies.ts";
 import { nativeBridge, nativePolicy } from "./agent/native.ts";
+import { GameAudio } from "./audio/player.ts";
 import { findDecisionPoint } from "./engine/decision.ts";
 import { createGame, step, TPS } from "./engine/game.ts";
 import { opposite, type Dir, type GameState, type StepInput } from "./engine/types.ts";
@@ -43,6 +44,32 @@ let paused = false;
 const records: DecisionRecord[] = [];
 let lastRecord: DecisionRecord | null = null;
 const overlay: Overlay = {};
+
+// ---- audio -------------------------------------------------------------------
+function loadMuted(): boolean {
+  try {
+    return localStorage.getItem("pacman.muted") === "1";
+  } catch {
+    return false;
+  }
+}
+
+const audio = new GameAudio(params.get("sound") === "0" || loadMuted());
+
+function setMuted(muted: boolean): void {
+  audio.setMuted(muted);
+  $("sound").textContent = muted ? "Sound: off" : "Sound: on";
+  try {
+    localStorage.setItem("pacman.muted", muted ? "1" : "0");
+  } catch {
+    // Remembering the choice is a convenience.
+  }
+}
+
+// Browsers start audio only after a user gesture; the iOS app allows it right away.
+for (const type of ["pointerdown", "keydown", "touchstart"]) window.addEventListener(type, () => audio.unlock(), { passive: true });
+if (bridge) audio.unlock();
+document.addEventListener("visibilitychange", () => audio.setSuspended(document.hidden || paused));
 
 function queue(input: StepInput): void {
   if (input.intent !== undefined) pending.intent = input.intent;
@@ -106,6 +133,7 @@ function frame(now: number): void {
     let steps = 0;
     while (acc >= STEP_MS && steps < 5) {
       step(game, pending);
+      audio.onTick(game);
       pending = {};
       acc -= STEP_MS;
       steps++;
@@ -210,6 +238,10 @@ window.addEventListener("keydown", (e) => {
     restart();
     return;
   }
+  if (e.key === "m" || e.key === "M") {
+    setMuted(!audio.muted);
+    return;
+  }
   const d = KEYS[e.key];
   if (!d || config.mode !== "human") return;
   e.preventDefault();
@@ -238,6 +270,7 @@ canvas.addEventListener("touchend", (e) => {
 function togglePause(): void {
   paused = !paused;
   $("pause").textContent = paused ? "Resume" : "Pause";
+  audio.setSuspended(paused);
   syncAgent();
 }
 
@@ -285,6 +318,8 @@ function setupControls(): void {
   };
   $("pause").onclick = togglePause;
   $("restart").onclick = restart;
+  $("sound").onclick = () => setMuted(!audio.muted);
+  setMuted(audio.muted);
   $("export").onclick = () => {
     const blob = new Blob(records.map((r) => JSON.stringify(r) + "\n"), { type: "application/x-ndjson" });
     const a = document.createElement("a");
@@ -322,6 +357,7 @@ if (statusBridge) {
       tokensP50: median(recent.flatMap((r) => (r.inputTokens ? [r.inputTokens] : []))),
       ticksPerSecond: tickTimes.length, mode: config.mode, model: config.model, paused,
       window: { seconds: 2, ...frameStats, maxGapMs: Math.round(frameStats.maxGapMs), droppedMs: Math.round(frameStats.droppedMs) },
+      audio: audio.state, muted: audio.muted,
     });
     Object.assign(frameStats, { frames: 0, ticks: 0, maxGapMs: 0, droppedMs: 0 });
   }, 2000);
@@ -353,4 +389,5 @@ requestAnimationFrame(frame);
     $<HTMLSelectElement>("speed").value = String(value);
   },
   restart,
+  audio,
 };

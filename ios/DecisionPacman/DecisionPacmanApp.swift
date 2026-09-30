@@ -1,3 +1,4 @@
+import AVFoundation
 import SwiftUI
 
 @main
@@ -7,6 +8,8 @@ struct DecisionPacmanApp: App {
     init() {
         // Start loading the model right away; decisions wait for it.
         EngineHost.shared.loadIfNeeded()
+        // Game sound follows the ring/silent switch and mixes with other audio.
+        try? AVAudioSession.sharedInstance().setCategory(.ambient)
     }
 
     var body: some Scene {
