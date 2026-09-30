@@ -36,8 +36,8 @@ async function main() {
   });
   const page = await context.newPage();
   const qs = new URLSearchParams({ model: args.model!, encoder: args.encoder!, seed: args.seed!, speed: args.speed! });
-  // Warm the model so the first decision does not include load time.
-  await fetch(`${process.env.VITE_DECISION_BASE_URL ?? "http://localhost:11434"}/api/generate`, {
+  // Warm a local model so the first decision does not include load time.
+  if (!process.env.TYPESAFE_API_KEY) await fetch(`${process.env.VITE_DECISION_BASE_URL ?? "http://localhost:11434"}/api/generate`, {
     method: "POST",
     body: JSON.stringify({ model: args.model, keep_alive: -1 }),
   }).catch(() => undefined);

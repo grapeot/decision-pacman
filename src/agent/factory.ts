@@ -9,7 +9,7 @@ export interface PolicyEnv {
 }
 
 /**
- * Policies by name: "random", "greedy", "oracle" (engine rollouts; "oracle-8s-x2"
+ * Policies by name: "random", "greedy", "jev" (TypeSafe's hosted Jev), "oracle" (engine rollouts; "oracle-8s-x2"
  * sets an 8 s horizon and 2 samples), "teacher" and "teacher-think" (the
  * chat model from TEACHER_BASE_URL / TEACHER_MODEL), or any decision model
  * name served on the /v1/systemone endpoint.
@@ -17,6 +17,15 @@ export interface PolicyEnv {
 export function makePolicy(name: string, seed: number, env: PolicyEnv): Policy {
   if (name === "random") return randomPolicy(seed);
   if (name === "greedy") return greedyPolicy();
+  if (name === "jev") {
+    // TypeSafe's hosted API speaks the same /v1/systemone protocol as Ollama.
+    if (!process.env.TYPESAFE_API_KEY) throw new Error("Set TYPESAFE_API_KEY to call Jev.");
+    return systemOnePolicy({
+      baseUrl: process.env.JEV_BASE_URL ?? "https://api.typesafe.ai",
+      model: process.env.JEV_MODEL ?? "jev-latest",
+      apiKey: process.env.TYPESAFE_API_KEY,
+    });
+  }
   const oracle = /^oracle(?:-(\d+(?:\.\d+)?)s)?(?:-x(\d+))?$/.exec(name);
   if (oracle) return oraclePolicy({ horizonSeconds: oracle[1] ? Number(oracle[1]) : 5, samples: oracle[2] ? Number(oracle[2]) : 1 });
   if (name === "teacher" || name === "teacher-think") {

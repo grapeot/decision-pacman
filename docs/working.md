@@ -81,6 +81,19 @@
 - The stall was therefore not a world-wide freeze. What looks like one is either the designed freezes (1.5 s dying plus 2 s ready after each death, when ghosts stop too) or Pac-Man waiting at a junction whose straight-ahead exit is a wall because the answer was late, while the ghosts keep moving. The user confirmed the second is the intended behavior. No game or inference setting changed.
 - Decision latency rises within a game: p50 (last 50 decisions) about 360-375 ms at the start, 650-850 ms after 40-60 s of continuous inference, back to about 430 ms after a 40 s rest. Input tokens stay flat (p50 344-382 in the game where they were logged), so the prompt is not growing. The device reported thermal state `serious` throughout the two games where it was logged, so throttling under sustained GPU load is the likely cause. As latency climbs, decisions fall from about 4.5 to 2.5 per 2 s, and the stale rate per game was 23%, 34%, 45%, and 35%, so Pac-Man misses more turns late in a game.
 
+### 2026-09-30 (music and sound)
+
+- Added original chiptune music and sound effects, synthesized with Web Audio (`src/audio/`). Music follows the game phase; effects follow game events. M or the Sound button mutes.
+- Offline render of a 40 s tour (`npm run render-audio`): -21 LUFS integrated, peak -3.7 dBFS.
+- The iOS app uses an ambient audio session, so Silent Mode mutes the game. A playback session that ignores Silent Mode was tried and dropped: a game should stay quiet when the phone is silenced.
+
+### 2026-09-30 (Jev)
+
+- Connected TypeSafe's hosted Jev (`--policy jev`, `TYPESAFE_API_KEY`). Same `/v1/systemone` format as Ollama; the API rejects `keep_alive`, so hosted requests leave it out.
+- 10 evaluation games, realtime, 1x: mean 178 pellets, 2,482 points, 52 s, 0 levels cleared, p50 115 ms, 3% stale. Agreement with the oracle on 1,000 validation states: 39.9% (decisive 40.9%), cross-entropy 1.41.
+- Recorded `docs/media/demo_jev.mp4` (30 s, seed 100): 900 points, 86 pellets, one life lost. Browser p50 was about 210 ms through the dev proxy while other runs shared the API.
+- Jev adds about 300 input tokens of its own per request (325 for a trivial state).
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.

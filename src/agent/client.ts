@@ -25,12 +25,17 @@ export interface SystemOneConfig {
   baseUrl: string;
   model: string;
   keepAlive?: string | number;
+  /** Bearer token for hosted endpoints (for example TypeSafe's Jev). Never logged. */
+  apiKey?: string;
+  /** A hosted endpoint, reached without a key here because a proxy adds it. Hosted endpoints reject keep_alive. */
+  hosted?: boolean;
 }
 
 export function buildRequest(cfg: SystemOneConfig, enc: EncodedDecision): object {
   return {
     model: cfg.model,
-    keep_alive: cfg.keepAlive ?? -1,
+    // keep_alive is an Ollama extension; hosted System One endpoints do not take it.
+    ...(cfg.apiKey || cfg.hosted ? {} : { keep_alive: cfg.keepAlive ?? -1 }),
     state: enc.state,
     questions: {
       move: { type: "choice", instructions: enc.instructions, criteria: enc.criteria },
@@ -45,7 +50,7 @@ export async function askSystemOne(cfg: SystemOneConfig, enc: EncodedDecision, s
   try {
     res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(cfg.apiKey ? { Authorization: `Bearer ${cfg.apiKey}` } : {}) },
       body: JSON.stringify(buildRequest(cfg, enc)),
       signal,
     });

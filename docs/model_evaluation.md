@@ -8,6 +8,7 @@ This document records how we chose the in-game model, the fine-tuning target, an
 - **Fine-tuning target: a 0.8B model.** `tev1:0.8b` answers in about 65 ms, which is close to real time, but scores 0.40 on the probe, which is near chance. Fast and weak is the case where fine-tuning has the most to show.
 - **Labels: a search oracle, not an LLM.** An agent that rolls the game engine forward 5 seconds for each option survived every 5-minute evaluation game and averaged 1,109 pellets, at 5 ms of local CPU per decision. Qwen3.8-27B looked strong on the synthetic probe (0.97), but as a player it lost all three lives within 39 to 93 seconds in 5-minute games.
 - **Fine-tuning works.** A 0.8B model fine-tuned on 31,585 oracle-labeled states (`pacman-0.8b`) averaged 456 pellets and 94 s per game at 63 ms per decision. That is 6.6 times off-the-shelf `tev1:0.8b` at the same speed, 3 times `tev1:4b`, and more than twice the scripted greedy rule. The oracle it learned from still averages 1,109.
+- **Hosted Jev sits between `tev1:4b` and the greedy rule.** Through TypeSafe's API, Jev 1.13.0 averaged 178 pellets and 52 s per game at 115 ms per decision, and agreed with the oracle on 39.9% of held-out states. The fine-tuned 0.8B model beats it on both.
 - **State representation matters more than model size.** Compact per-direction facts beat a full ASCII board in both latency and decision quality. Quantization and prefix caching did not reduce latency.
 
 The probe uses synthetic scenarios with one clearly correct move each. It measures latency, output reliability, and basic judgment. It does not measure how well a model plays. Experiments 8 to 10 measure play in the game itself and carry more weight.
@@ -161,6 +162,7 @@ A level has 244 pellets, so 1,109 is about four and a half levels. Horizons past
 | Qwen3.5-0.8B before training (training-side eval, 2,000 states) | 28.8% | 30.6% | 1.43 | - |
 | `tev1:0.8b` | 31.8% | 29.5% | 1.22 | 73 ms |
 | `tev1:4b` | 38.4% | 40.7% | 1.29 | 205 ms |
+| Jev 1.13.0 (hosted) | 39.9% | 40.9% | 1.41 | 237 ms |
 | **`pacman-0.8b`** | **53.9%** | **57.5%** | **1.05** | **59 ms** |
 
 Validation agreement rose from 29% to 53% within 1,200 of 1,975 steps and then flattened. The plateau is likely the information gap: many oracle decisions depend on facts the features encoder does not include.
@@ -172,6 +174,7 @@ Validation agreement rose from 29% to 53% within 1,200 of 1,975 steps and then f
 | random | 30 | 311 | 37 s | 0 of 10 | 0 ms | 0% |
 | `tev1:0.8b` | 69 | 716 | 35 s | 0 of 10 | 62 ms | 4% |
 | `tev1:4b` | 148 | 1,660 | 55 s | 0 of 10 | 202 ms | 11% |
+| Jev 1.13.0 (hosted) | 178 | 2,482 | 52 s | 0 of 10 | 115 ms | 3% |
 | greedy (scripted) | 201 | 2,623 | 63 s | 0 of 10 | 0 ms | 0% |
 | **`pacman-0.8b`** | **456** | **7,467** | **94 s** | **8 of 10** | **63 ms** | **3%** |
 | `oracle-5s` (teacher) | 1,109 | 19,789 | 300 s (cap) | 10 of 10 | 5 ms | 0% |
@@ -186,9 +189,20 @@ Per game, `pacman-0.8b` ate 239, 400, 417, 649, 482, 683, 587, 420, 240, and 446
 |---|---|---|---|---|
 | `docs/media/demo_tev1_08b.mp4` | `tev1:0.8b` | 710 | 71 | 2 |
 | `docs/media/demo_tev1_4b.mp4` | `tev1:4b` | 1,250 | 101 | 1 |
+| `docs/media/demo_jev.mp4` | Jev 1.13.0 (hosted) | 900 | 86 | 1 |
 | `docs/media/demo_pacman_08b.mp4` | `pacman-0.8b` | 2,660 | 170 | 0 |
 
 In the `tev1:0.8b` clip, the option probabilities stay close to uniform (confidence 0.00-0.04).
+
+### 12. Jev, TypeSafe's hosted decision model
+
+Jev is served at `https://api.typesafe.ai/v1/systemone` with the same request and response format as Ollama's endpoint, so the game calls it unchanged. Only the base URL, the model name (`jev-latest`, which answered as `jev-1.13.0`), and a bearer key differ. The API rejects Ollama's `keep_alive` field, so the client leaves it out for hosted endpoints. Run it with `TYPESAFE_API_KEY` set: `npm run headless -- --policy jev`, or `VITE_DECISION_BASE_URL=https://api.typesafe.ai npm run dev` and `?model=jev-latest` in the browser. The dev server adds the key to proxied requests, so it never reaches the page.
+
+**Latency.** Over the internet from the test machine, p50 was 106-123 ms per game in the headless run. The agreement run, which sent requests while the games were also running, measured p50 237 ms and p90 298 ms. That is comparable to `tev1:4b` running locally, which pays for its latency with local compute instead of network.
+
+**Play.** Per game, Jev ate 208, 173, 165, 198, 125, 203, 103, 231, 193, and 179 pellets, and lost all three lives in every game. It plays better than `tev1:4b` (148) and slightly worse than the greedy rule (201).
+
+**Tokens.** The same state costs about 605 input tokens on Jev against about 380 on the local models. A trivial request costs 325, so the hosted service adds roughly 300 tokens of its own per call. The 10 games used 2.05 million input tokens over 3,368 decisions.
 
 ## Conclusions
 
