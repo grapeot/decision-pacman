@@ -1,10 +1,11 @@
-import { asciiWindowEncoder } from "./ascii.ts";
+import { asciiFullEncoder, asciiWindowEncoder } from "./ascii.ts";
 import { featuresEncoder } from "./features.ts";
 import type { Encoder } from "./types.ts";
 
 export const ENCODERS: Record<string, Encoder> = {
   [featuresEncoder.name]: featuresEncoder,
   [asciiWindowEncoder.name]: asciiWindowEncoder,
+  [asciiFullEncoder.name]: asciiFullEncoder,
 };
 
 export const DEFAULT_ENCODER = featuresEncoder.name;

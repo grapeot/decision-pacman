@@ -42,7 +42,8 @@ async function main() {
   const encoder = ENCODERS[args.encoder!];
   if (!encoder) throw new Error(`unknown encoder ${args.encoder}`);
 
-  const tag = `${new Date().toISOString().replace(/[:.]/g, "-")}_${args.player}_${args.labeler}_s${seed0}`.replace(/[^\w.-]/g, "_");
+  // Include the encoder and pid so runs started in the same millisecond never share a directory.
+  const tag = `${new Date().toISOString().replace(/[:.]/g, "-")}_${args.player}_${args.labeler}_${args.encoder}_s${seed0}_p${process.pid}`.replace(/[^\w.-]/g, "_");
   const dir = join(args.out!, tag);
   mkdirSync(dir, { recursive: true });
   const dataPath = join(dir, "states.jsonl");

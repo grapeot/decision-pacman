@@ -100,7 +100,7 @@ export class AgentLoop {
       const askedTick = game.tick;
       this.controller = new AbortController();
       try {
-        const d = await this.policy.decide(enc, this.controller.signal);
+        const d = await this.policy.decide(enc, this.controller.signal, game);
         backoff = 500;
         this.latency.update(d.latencyMs);
         const now = this.hooks.getState();

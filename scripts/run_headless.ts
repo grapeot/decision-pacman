@@ -37,7 +37,7 @@ async function main() {
   if (args["base-url"]) env.decisionBaseUrl = args["base-url"];
   const games = Number(args.games);
   const seed0 = Number(args.seed);
-  const tag = `${new Date().toISOString().replace(/[:.]/g, "-")}_${args.policy!.replace(/[^\w.-]/g, "_")}_${args.encoder}_${clock}`;
+  const tag = `${new Date().toISOString().replace(/[:.]/g, "-")}_${args.policy!.replace(/[^\w.-]/g, "_")}_${args.encoder}_${clock}_p${process.pid}`;
   const dir = join(args.out!, tag);
   mkdirSync(dir, { recursive: true });
   const logPath = join(dir, "decisions.jsonl");

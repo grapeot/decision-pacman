@@ -1,4 +1,5 @@
 import type { EncodedDecision } from "../encoders/types.ts";
+import type { GameState } from "../engine/types.ts";
 import { askSystemOne, type SystemOneConfig } from "./client.ts";
 
 export interface PolicyDecision {
@@ -13,7 +14,8 @@ export interface Policy {
   name: string;
   /** Encoder this policy expects, when it reads the encoded state itself. */
   requiresEncoder?: string;
-  decide(enc: EncodedDecision, signal?: AbortSignal): Promise<PolicyDecision>;
+  /** `game` is the live state, for policies that search the engine instead of reading the encoding. */
+  decide(enc: EncodedDecision, signal?: AbortSignal, game?: GameState): Promise<PolicyDecision>;
 }
 
 export function systemOnePolicy(cfg: SystemOneConfig): Policy {
@@ -54,26 +56,30 @@ interface FactsLike {
  * Scripted baseline over the features encoder: chase edible ghosts nearby,
  * flee when a normal ghost is close, otherwise head for the nearest pellet.
  */
+export function greedyChoice(enc: EncodedDecision, dangerSteps = 4): string {
+  const options = (enc.state as { options: Record<string, FactsLike> }).options;
+  const keys = enc.keys.filter((k) => options[k]);
+  const far = (v: number | null | undefined) => (v === null || v === undefined ? 99 : v);
+  const edible = keys.filter((k) => far(options[k].edible) <= 8 && far(options[k].ghost) > dangerSteps);
+  if (edible.length > 0) {
+    edible.sort((a, b) => far(options[a].edible) - far(options[b].edible));
+    return edible[0];
+  }
+  const safe = keys.filter((k) => far(options[k].ghost) > dangerSteps);
+  if (safe.length === 0) {
+    const byGhost = [...keys].sort((a, b) => far(options[b].ghost) - far(options[a].ghost));
+    return byGhost[0];
+  }
+  safe.sort((a, b) => far(options[a].food) - far(options[b].food) || options[b].pellets - options[a].pellets);
+  return safe[0];
+}
+
 export function greedyPolicy(dangerSteps = 4): Policy {
   return {
     name: "greedy",
     requiresEncoder: "features",
     async decide(enc) {
-      const options = (enc.state as { options: Record<string, FactsLike> }).options;
-      const keys = enc.keys.filter((k) => options[k]);
-      const far = (v: number | null | undefined) => (v === null || v === undefined ? 99 : v);
-      const edible = keys.filter((k) => far(options[k].edible) <= 8 && far(options[k].ghost) > dangerSteps);
-      if (edible.length > 0) {
-        edible.sort((a, b) => far(options[a].edible) - far(options[b].edible));
-        return { choice: edible[0], latencyMs: 0 };
-      }
-      const safe = keys.filter((k) => far(options[k].ghost) > dangerSteps);
-      if (safe.length === 0) {
-        const byGhost = [...keys].sort((a, b) => far(options[b].ghost) - far(options[a].ghost));
-        return { choice: byGhost[0], latencyMs: 0 };
-      }
-      safe.sort((a, b) => far(options[a].food) - far(options[b].food) || options[b].pellets - options[a].pellets);
-      return { choice: safe[0], latencyMs: 0 };
+      return { choice: greedyChoice(enc, dangerSteps), latencyMs: 0 };
     },
   };
 }
