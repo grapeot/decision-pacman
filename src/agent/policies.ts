@@ -5,6 +5,8 @@ import { askSystemOne, type SystemOneConfig } from "./client.ts";
 export interface PolicyDecision {
   choice: string;
   probabilities?: Record<string, number>;
+  /** Per-option values from search policies (higher is better; not probabilities). */
+  values?: Record<string, number>;
   confidence?: number;
   inputTokens?: number;
   latencyMs: number;

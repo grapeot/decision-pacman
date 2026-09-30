@@ -70,20 +70,20 @@ export function oraclePolicy(opts: OracleOptions = {}): Policy {
     async decide(enc, _signal, game): Promise<PolicyDecision> {
       if (!game) throw new Error("the oracle needs the live game state");
       const started = performance.now();
-      const probabilities: Record<string, number> = {};
+      const values: Record<string, number> = {};
       let best = enc.keys[0];
       let bestValue = -Infinity;
       for (const key of enc.keys) {
         let total = 0;
         for (let i = 0; i < samples; i++) total += rolloutValue(game, enc, key, horizonTicks, i);
         const value = total / samples;
-        probabilities[key] = value;
+        values[key] = Math.round(value * 10) / 10;
         if (value > bestValue) {
           bestValue = value;
           best = key;
         }
       }
-      return { choice: best, latencyMs: performance.now() - started, probabilities };
+      return { choice: best, latencyMs: performance.now() - started, values };
     },
   };
 }
