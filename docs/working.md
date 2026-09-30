@@ -48,6 +48,18 @@
 - A literature survey agreed: the strongest simple agents rely on an exact ghost model and a safe-path test, which this engine provides for free.
 - Fixed output directories colliding when two runs start in the same millisecond. Names now include the encoder and the process id.
 
+### 2026-09-30 (Stage 3: fine-tuning)
+
+- Generated v1 data with `oracle-5s` labels: 57,249 training and 8,050 validation states. After removing duplicates: 31,585 and 4,975. Oracle, greedy, and random players, train seeds 1000-3029, validation seeds 900-944.
+- Found how Ollama builds System One prompts (`decision/systemone.go`) and reproduced it in `training/prompt.py`.
+- Verified early that a raw GGUF imported through `/api/create` with Tev1's system prompt serves `/v1/systemone` with probabilities identical to `tev1:0.8b`.
+- Trained a LoRA on `Qwen/Qwen3.5-0.8B` on one borrowed RTX 5090 (2 epochs, 1,975 steps, about 40 minutes). Validation agreement with the oracle went from 28.8% to 52.7%.
+- Exported Q8_0 GGUF, imported it into Ollama as `pacman-0.8b`, and returned the GPU to the cluster.
+- Parity: HF bf16 against Ollama Q8_0 on 50 states, median probability difference 0.010, max 0.027.
+- Offline agreement (1,000 validation states): `tev1:0.8b` 31.8%, `tev1:4b` 38.4%, `pacman-0.8b` 53.9%.
+- In-game (seeds 100-109, realtime): `tev1:0.8b` 69 pellets, `tev1:4b` 148, greedy 201, `pacman-0.8b` 456 (8 of 10 games cleared level 1), `oracle-5s` 1,109.
+- Recorded `docs/media/demo_pacman_08b.mp4` (30 s, seed 100): 2,660 points, 170 pellets, no lives lost.
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.
@@ -68,3 +80,7 @@
 - The engine is a perfect simulator, so rollout search beats any model we tried by a wide margin, and it runs locally in milliseconds. Label training data with the oracle, not an LLM. Keep the LLM as a comparison point.
 - 30-second windows hide the difference between players. They are mostly pellet collection early in the level. Survival only separates over minutes.
 - zsh does not word-split `$var`. `set -- $cfg` in a loop passed both arguments as one. Use functions with explicit arguments.
+- Match Ollama's scoring prompt exactly when fine-tuning for `/v1/systemone`. It is a JSON user message (`context`, `schema` with lettered choices, then `Requested field`) under the model's system prompt, with thinking off, scored on the option letters only. Training on the same softmax over letters makes the served model behave like the trained one (0.010 median probability difference).
+- Project only the answer position through the output layer. Qwen3.5's 248k-token vocabulary makes full logits several GB per batch.
+- Ollama 0.35.0 rejects `CAPABILITY` in a Modelfile but serves `/v1/systemone` for an imported GGUF anyway. Create the model through `/api/create` to set the system prompt exactly, including its leading and trailing newlines.
+- llama.cpp's converter requirements pin transformers 4.57.6, but Qwen3.5 tokenizers need transformers 5.5 or later. Install the requirements, then upgrade transformers.
