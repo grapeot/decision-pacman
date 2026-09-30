@@ -15,10 +15,36 @@ struct GameView: UIViewRepresentable {
         webView.scrollView.backgroundColor = .black
         webView.isInspectable = true
         webView.load(URLRequest(url: URL(string: "app://local/index.html")!))
+        WebViewHolder.shared.webView = webView
         return webView
     }
 
     func updateUIView(_ uiView: WKWebView, context: Context) {}
+}
+
+/// Keeps a reference to the game's web view so URL commands can reach the page.
+@MainActor
+final class WebViewHolder {
+    static let shared = WebViewHolder()
+    weak var webView: WKWebView?
+
+    /// decisionpacman://control?mode=ai|human&paused=0|1&speed=<x>&restart=1 calls the page's control functions.
+    func handle(url: URL) {
+        guard url.host == "control", let webView,
+              let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems else { return }
+        for item in items {
+            guard let value = item.value else { continue }
+            var js: String?
+            switch item.name {
+            case "mode" where value == "ai" || value == "human": js = "window.__pacman.setMode('\(value)')"
+            case "paused": js = "window.__pacman.setPaused(\(value == "1"))"
+            case "speed": if let x = Double(value), x > 0, x <= 2 { js = "window.__pacman.setSpeed(\(x))" }
+            case "restart" where value == "1": js = "window.__pacman.restart()"
+            default: break
+            }
+            if let js { webView.evaluateJavaScript(js) }
+        }
+    }
 }
 
 /// Answers the page's `window.webkit.messageHandlers.decide.postMessage({prompt, options})`.
@@ -40,8 +66,12 @@ final class DecideHandler: NSObject, WKScriptMessageHandlerWithReply {
 /// Writes the page's periodic status to Documents/game_status.json, so a run can be checked from a Mac with devicectl.
 final class StatusHandler: NSObject, WKScriptMessageHandler {
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        guard JSONSerialization.isValidJSONObject(message.body),
-              let data = try? JSONSerialization.data(withJSONObject: message.body, options: [.sortedKeys]) else { return }
+        guard var status = message.body as? [String: Any] else { return }
+        // Sustained inference can heat the device, which slows decisions; record it next to the latency.
+        let thermal = ["nominal", "fair", "serious", "critical"]
+        status["thermal"] = thermal[min(ProcessInfo.processInfo.thermalState.rawValue, thermal.count - 1)]
+        guard JSONSerialization.isValidJSONObject(status),
+              let data = try? JSONSerialization.data(withJSONObject: status, options: [.sortedKeys]) else { return }
         try? data.write(to: EngineHost.documents.appendingPathComponent("game_status.json"), options: .atomic)
     }
 }

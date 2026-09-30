@@ -91,8 +91,15 @@ let acc = 0;
 let last = performance.now();
 const tickTimes: number[] = [];
 
+// Frame timing, reported in the status heartbeat to diagnose stalls.
+const frameStats = { frames: 0, ticks: 0, maxGapMs: 0, droppedMs: 0 };
+
 function frame(now: number): void {
-  const dt = Math.min(250, now - last);
+  const gap = now - last;
+  frameStats.frames++;
+  frameStats.maxGapMs = Math.max(frameStats.maxGapMs, gap);
+  if (gap > 250) frameStats.droppedMs += gap - 250;
+  const dt = Math.min(250, gap);
   last = now;
   if (!paused) {
     acc += dt;
@@ -103,8 +110,12 @@ function frame(now: number): void {
       acc -= STEP_MS;
       steps++;
       tickTimes.push(now);
+      frameStats.ticks++;
     }
-    if (steps === 5) acc = 0;
+    if (steps === 5) {
+      frameStats.droppedMs += acc;
+      acc = 0;
+    }
   }
   while (tickTimes.length && now - tickTimes[0] > 1000) tickTimes.shift();
 
@@ -300,15 +311,20 @@ async function loadModels(): Promise<void> {
 const statusBridge = (window as unknown as { webkit?: { messageHandlers?: { status?: { postMessage(m: unknown): void } } } })
   .webkit?.messageHandlers?.status;
 if (statusBridge) {
+  let seq = 0;
+  const median = (xs: number[]) => (xs.length ? [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] : null);
   setInterval(() => {
-    const recent = records.slice(-50).map((r) => r.latencyMs).sort((a, b) => a - b);
+    const recent = records.slice(-50);
     statusBridge.postMessage({
-      tick: game.tick, phase: game.phase, score: game.score, lives: game.lives, level: game.level,
+      seq: ++seq, tick: game.tick, phase: game.phase, score: game.score, lives: game.lives, level: game.level,
       pelletsLeft: game.foodLeft, decisions: records.length, stale: records.filter((r) => r.stale).length,
-      latencyP50: recent.length ? recent[Math.floor(recent.length / 2)] : null,
-      ticksPerSecond: tickTimes.length, mode: config.mode, model: config.model,
+      latencyP50: median(recent.map((r) => r.latencyMs)),
+      tokensP50: median(recent.flatMap((r) => (r.inputTokens ? [r.inputTokens] : []))),
+      ticksPerSecond: tickTimes.length, mode: config.mode, model: config.model, paused,
+      window: { seconds: 2, ...frameStats, maxGapMs: Math.round(frameStats.maxGapMs), droppedMs: Math.round(frameStats.droppedMs) },
     });
-  }, 5000);
+    Object.assign(frameStats, { frames: 0, ticks: 0, maxGapMs: 0, droppedMs: 0 });
+  }, 2000);
 }
 
 setupControls();
@@ -317,10 +333,24 @@ syncAgent();
 setInterval(updateHud, 100);
 requestAnimationFrame(frame);
 
-// Exposed for scripted recording and debugging.
+// Exposed for scripted recording, debugging, and native control (the iOS app calls these).
 (window as unknown as { __pacman: object }).__pacman = {
   get game() {
     return game;
   },
   records,
+  setMode(mode: "ai" | "human") {
+    config.mode = mode;
+    $<HTMLSelectElement>("mode").value = mode;
+    syncAgent();
+  },
+  setPaused(value: boolean) {
+    if (paused !== value) togglePause();
+  },
+  setSpeed(value: number) {
+    config.speed = value;
+    game.options.speed = value;
+    $<HTMLSelectElement>("speed").value = String(value);
+  },
+  restart,
 };
