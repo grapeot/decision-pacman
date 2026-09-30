@@ -31,6 +31,7 @@
       }
       canvas { display: block; background: #000; border: 1px solid var(--line); border-radius: 6px; }
       .side { width: 380px; display: flex; flex-direction: column; gap: 12px; }
+      .app > canvas { touch-action: none; }
       .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
       .card h2 { margin: 0 0 8px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
       .row { display: flex; justify-content: space-between; gap: 8px; }
@@ -56,6 +57,7 @@
       .error .hint { color: var(--text); margin-top: 4px; }
       .help { color: var(--muted); font-size: 11px; }
       @media (max-width: 1000px) { .side { width: 100%; max-width: 560px; } }
+      @media (max-width: 600px) { .app { padding: 8px; gap: 8px; } }
     </style>
   </head>
   <body>
@@ -119,7 +121,7 @@
             <button id="restart">Restart</button>
             <button id="export">Download log</button>
           </div>
-          <p class="help">Arrow keys or WASD play in keyboard mode. Space pauses, R restarts.</p>
+          <p class="help">Arrow keys, WASD, or swipes play in keyboard mode. Space pauses, R restarts.</p>
         </div>
       </div>
     </div>
