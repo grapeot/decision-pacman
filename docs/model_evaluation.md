@@ -6,10 +6,10 @@ This document records how we chose the in-game model, the fine-tuning target, an
 
 - **In-game default: `tev1:4b`.** It was the best off-the-shelf trade-off on this machine: about 160 ms per decision and 0.88 accuracy on the probe, faster and more accurate than `nimble`.
 - **Fine-tuning target: a 0.8B model.** `tev1:0.8b` answers in about 65 ms, which is close to real time, but scores 0.40 on the probe, which is near chance. Fast and weak is the case where fine-tuning has the most to show.
-- **Teacher: Qwen3.8-27B.** It scored 0.97 with thinking off and 1.00 with thinking on. Every answer was parseable and legal, and throughput was about 16 labels per second at concurrency 8.
+- **Labels: a search oracle, not an LLM.** An agent that rolls the game engine forward 5 seconds for each option survived every 5-minute evaluation game and averaged 1,109 pellets, at 5 ms of local CPU per decision. Qwen3.8-27B looked strong on the synthetic probe (0.97), but as a player it lost all three lives within 39 to 93 seconds in 5-minute games.
 - **State representation matters more than model size.** Compact per-direction facts beat a full ASCII board in both latency and decision quality. Quantization and prefix caching did not reduce latency.
 
-The probe uses synthetic scenarios with one clearly correct move each. It measures latency, output reliability, and basic judgment. It does not measure how well a model plays. In-game results from the headless runner will replace it as the main evidence.
+The probe uses synthetic scenarios with one clearly correct move each. It measures latency, output reliability, and basic judgment. It does not measure how well a model plays. Experiments 8 to 10 measure play in the game itself and carry more weight.
 
 ## Setup
 
@@ -100,13 +100,63 @@ Ollama's launch post embeds a recorded game as JSON: `nimble:9b-int4`, a 19×21 
 
 tev1:4b plays far above random and below the scripted baseline, which reads the same facts with hand-written rules. This is the gap the teacher data and fine-tuning stages are meant to close for a 0.8B model. Three games are enough to show that play works, not to rank models. Stage 4 will use more seeds.
 
+### 9. Qwen3.8-27B as a player (`gen_teacher_data.ts`, lockstep)
+
+The teacher gets the same encoded state as the student and answers `{"move", "reason"}`. Lockstep means the game waits for each answer, so latency does not count against it.
+
+30 seconds per game, seeds 1001-1003:
+
+| Qwen sees | Thinking | Pellets (3 games) | Mean pellets | Deaths (total) | Unparseable |
+|---|---|---|---|---|---|
+| Features | off | 155, 182, 170 | 169 | 2 | 0 |
+| Features | on | 165, 181, 182 | 176 | 0 | 13 of ~500 |
+| Full ASCII map (`ascii-full`) | off | 105, 107, 85 | 99 | 6 | 0 |
+
+The full-map run with thinking on was stopped after 48 minutes, too slow to matter.
+
+**Qwen misreads the ASCII map.** Its reasons mention dead ends, which this maze does not have, and a tunnel on row 29, when the tunnel is on row 14. It also headed for a distant power pellet when one sat on the same row. Reading vertical relationships from a grid serialized as text is unreliable: tiles above and below each other sit dozens of tokens apart.
+
+**30 seconds hides the difference between players.** In 5-minute lockstep games on seeds 100-102, Qwen (features, thinking off) ate 361, 361, and 180 pellets. It lost all three lives within 74, 93, and 39 seconds.
+
+### 10. Search baselines
+
+**Survey.** A literature survey of simple, non-RL Pac-Man agents found a consistent lesson. The strongest simple agents rely on two things: an accurate model of ghost behavior, and a "safe path" test (Pac-Man reaches the next junction before any dangerous ghost). Supporting evidence:
+
+- A model-based Ms. Pac-Man agent predicted ghost moves with 94.6% accuracy and averaged 38,172 points on the real game, above the competition record of the time. Sources: [Cornell news](https://news.cornell.edu/stories/2017/01/engineers-eat-away-ms-pac-man-score-artificial-player), survey in IEEE ToG 2018 ([ResearchGate](https://www.researchgate.net/publication/321821472)).
+- The MCTS agent that won CIG'12 averaged 82,689 against the framework's baseline ghosts. Its ablations show that most of its strength comes from rule-based, safety-aware playouts: random playouts cut the score by 60-83%. Source: [Pepels, Winands and Lanctot](https://dke.maastrichtuniversity.nl/m.winands/documents/CIG2012_paper_106.pdf).
+- Rule-based agents with A* over ghost-weighted path costs (ICE Pambush) won CEC'09 with a 13,059 average. Source: [Matsumoto et al.](https://www.ice.ci.ritsumei.ac.jp/~ruck/PAP/jsst09-matsumoto.pdf).
+- The UC Berkeley CS188 Pac-Man agents are teaching templates, not strength benchmarks. The project only asks for more than half wins against one random ghost on a small layout. Source: [CS188 project 2](https://inst.eecs.berkeley.edu/~cs188/fa24/projects/proj2/).
+- Our `greedy` rule matches the framework's starter agent: flee, chase edible ghosts, else go to the nearest pellet.
+
+Published scores come from real Ms. Pac-Man or the Java competition framework, so they are not comparable with ours. Only the ranking of techniques transfers. Our engine is easier than both: ghost moves are deterministic except in frightened mode, so an agent can simulate the future exactly.
+
+**Our oracle** (`src/agent/oracle.ts`). For each option, copy the game, play the option, and run the real engine forward for a fixed horizon, with greedy play at later junctions. The value is the score gained, minus a large penalty for a death that shrinks the later the death happens, minus the distance to the nearest pellet at the end.
+
+Evaluation seeds 100-109, realtime clock, 1x speed, 5-minute cap:
+
+| Horizon | Mean pellets | Mean score | Games reaching the cap | Decision p50 |
+|---|---|---|---|---|
+| 3 s | 1,009 | 16,546 | 10 of 10 | 3 ms |
+| **5 s** | **1,109** | **19,789** | 10 of 10 | 5 ms |
+| 8 s | 1,011 | 15,858 | 10 of 10 | 7 ms |
+
+A level has 244 pellets, so 1,109 is about four and a half levels. Horizons past 5 seconds do not help, probably because the greedy playout policy gets less reliable further out. That explanation is not tested.
+
+5-minute lockstep head-to-head, seeds 100-102:
+
+| Player | Pellets | Result |
+|---|---|---|
+| oracle-3s | 971, 1,178, 1,211 | 1 death per game, all reached the cap |
+| Qwen3.8-27B (features, thinking off) | 361, 361, 180 | all lives lost at 74, 93, 39 s |
+
 ## Conclusions
 
 1. Use `tev1:4b` for the real-time demo. At about 160 ms, a decision is shorter than the typical 400 ms to 1.2 s Pac-Man needs to reach the next junction at arcade speed.
 2. Use a 0.8B model as the fine-tuning target and `tev1:0.8b` as its off-the-shelf baseline.
-3. Use Qwen3.8-27B as the teacher, with the engine's lookahead oracle as a cross-check. The probe is too easy to tell how the teacher does on ambiguous real positions.
-4. Invest in the encoder before the model. Keep states compact and factual, and measure every encoder change in tokens as well as accuracy.
+3. Label training data with `oracle-5s`. It is far stronger than any model we tried and costs milliseconds of local CPU per label. It also scores every option, so labels can be soft: ties become visible instead of being broken arbitrarily. Keep Qwen3.8-27B only as a comparison point.
+4. Mind the information gap. The oracle sees the full game state, and the student sees only its encoding. Decisions that depend on facts the encoding drops cannot be learned from it. Measure the student against the oracle on held-out states to see how large this gap is.
+5. Invest in the encoder before the model. Keep states compact and factual, and measure every encoder change in tokens as well as accuracy.
 
 ## Pending
 
-- More in-game seeds for tev1:4b, plus tev1:0.8b and nimble in the same setup.
+- More in-game seeds for `tev1:4b`, plus `tev1:0.8b` and `nimble` in the same setup.

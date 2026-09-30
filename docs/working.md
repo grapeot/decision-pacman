@@ -37,6 +37,17 @@
 - Smoke test (player and labeler both Qwen3.8-27B, thinking off, seed 1000, 30 s of game time): 144 labeled states in 46 s wall time, 0 failures, label latency p50 301 ms and p90 368 ms, 3.1 labels per second sequential. The teacher scored 2470 with 155 pellets and 1 death in those 30 s. Labels: left 53, up 35, down 25, right 22, back 9. It agreed with the greedy rules on 70% of states. The disagreements sampled were ties, which the teacher broke toward a power pellet.
 - Tests: 33 passing (adds teacher reply parsing and prompt tests).
 
+### 2026-09-30 (teacher comparison and search baseline)
+
+- Added the `ascii-full` encoder: the whole board with row and column numbers, plus positions in words (about 1,350 characters).
+- Qwen3.8-27B as a player, lockstep, 30 s, seeds 1001-1003: features, thinking off: 169 pellets and 2 deaths in total. Features, thinking on: 176 pellets, 0 deaths, 13 unparseable answers out of about 500. ASCII full map, thinking off: 99 pellets, 6 deaths. ASCII full map with thinking was stopped after 48 minutes, too slow to matter.
+- Qwen misreads the ASCII map. Sampled reasons mention dead ends (the maze has none), a tunnel on row 29 (it is on row 14), and a far power pellet when one was on the same row.
+- Added `src/agent/oracle.ts`: for each option, copy the game, play the option, and roll the real engine forward with greedy play at later junctions. The score gained is penalized heavily for a death, less for a later one.
+- Oracle results on evaluation seeds 100-109, realtime, 5-minute cap: `oracle-3s` averaged 1,009 pellets (about 4 levels) and 16,546 points, 3 ms per decision. `oracle-5s` averaged 1,109 pellets and 19,789 points, 5 ms. `oracle-8s` averaged 1,011 pellets and 15,858 points, 7 ms. All 30 games reached the time cap. A longer horizon is not better past 5 s, probably because the greedy rollout policy gets less reliable further out.
+- 5-minute lockstep head-to-head, seeds 100-102: `oracle-3s` ate 971, 1,178, and 1,211 pellets with 1 death per game. Qwen (features, thinking off) ate 361, 361, and 180 pellets and lost all three lives within 74, 93, and 39 seconds.
+- A literature survey agreed: the strongest simple agents rely on an exact ghost model and a safe-path test, which this engine provides for free.
+- Fixed output directories colliding when two runs start in the same millisecond. Names now include the encoder and the process id.
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.
@@ -54,3 +65,6 @@
 - The greedy baseline scored 238 pellets without lookahead and 201 with it, because it decides earlier on older information. Compare baselines only within the same agent setup.
 - Many teacher states are ties: no ghost nearby and equal food on several exits. A hard label on a tie is noise for the student. Before training, either down-weight ties, keep the teacher's reason to filter them, or ask for a distribution instead of a single move.
 - Sequential lockstep labeling runs at about 3 states per second. 20,000 states would take about 2 hours on one game. Several games in parallel against the shared teacher endpoint cut that, within a concurrency cap.
+- The engine is a perfect simulator, so rollout search beats any model we tried by a wide margin, and it runs locally in milliseconds. Label training data with the oracle, not an LLM. Keep the LLM as a comparison point.
+- 30-second windows hide the difference between players. They are mostly pellet collection early in the level. Survival only separates over minutes.
+- zsh does not word-split `$var`. `set -- $cfg` in a loop passed both arguments as one. Use functions with explicit arguments.

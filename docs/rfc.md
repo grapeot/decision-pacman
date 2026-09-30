@@ -100,19 +100,17 @@ Baselines: `random` (uniform over legal options) and `greedy` (nearest pellet, a
 
 ## Stage 2: teacher data
 
-**Teacher adapter.** It wraps an OpenAI-compatible chat endpoint (`TEACHER_BASE_URL`, `TEACHER_MODEL`) as a policy. The prompt contains the rules, the same `features` state the student will see, and the legal options, and asks for `{"move", "reason"}`. It uses temperature 0 and thinking off by default, with thinking on for a slower, higher-quality pass. The answer is parsed with a strict regex and JSON parse. An unparseable or illegal answer is logged and the state dropped, never guessed.
+**Labeler.** `oracle-5s` (`src/agent/oracle.ts`). For each option it copies the game, plays the option, and rolls the real engine forward 5 seconds, with greedy play at later junctions. Ghost moves follow the real rules, so the lookahead is exact except for frightened ghosts' random turns. The value of an option is the score gained, minus a large penalty for a death that shrinks the later the death happens, minus the distance to the nearest pellet at the end. It costs about 5 ms of CPU per state. A chat model (Qwen3.8-27B) was evaluated first and dropped as the labeler: it plays far worse than the oracle and costs a remote GPU (`docs/model_evaluation.md`, experiments 9 and 10).
 
-**State sampling.** If only the teacher plays, the data covers only the positions a strong player reaches. The fine-tuned student will then wander into positions the teacher never saw. States are therefore sampled from a mix of rollouts: the teacher playing, random play, greedy play, and in round two the fine-tuned student playing (DAgger-style). All sampled states are labeled by the teacher, whoever produced them.
+**Soft labels.** The record stores every option's value, not only the argmax. Training can then turn values into a target distribution, so near-ties no longer force an arbitrary hard label.
 
-**Cross-check labels.** The lookahead oracle scores each option by rolling the engine forward (ghosts follow their rules, frightened ghosts are sampled over seeds) and records survival and pellets over a fixed horizon. Each record stores both labels. Agreement rate is a quality signal for the teacher, and disagreements are the most informative states to review.
+**State sampling.** If only the oracle plays, the data covers only the positions a strong player reaches. The fine-tuned student will then wander into positions the oracle never saw. States are therefore sampled from a mix of rollouts: the oracle playing, greedy and random play, and in round two the fine-tuned student playing (DAgger-style). All sampled states are labeled by the oracle, whoever produced them.
 
-**Record format.** One JSONL line per state: seed, tick, source policy, encoder version, encoded state, options, teacher move, reason and latency, oracle scores, and the outcome of the move actually taken.
+**Information gap.** The oracle sees the full game state, and the student sees only its encoding. Stage 4 measures agreement with the oracle on held-out states. A large gap points to the encoder, not the model.
 
-**Throughput.** Concurrency is configurable, default 4. The teacher endpoint is shared with other work, so generation runs in resumable batches. 20,000 states at about 10 per second is under an hour.
+**Record format.** One JSONL line per state: seed, tick, source policy, encoder, encoded state, instructions, options, per-option values, and the label.
 
 **Splits.** Train, validation, and evaluation use disjoint seed ranges: evaluation 100-199, validation 900-999, training 1000 and up. `scripts/gen_teacher_data.ts` refuses evaluation seeds.
-
-**Status.** The teacher policy, the shared runner, and `scripts/gen_teacher_data.ts` exist, and a 30-second smoke test passed (see `docs/working.md`). The lookahead oracle cross-check is not built yet.
 
 ## Stage 3: fine-tuning
 

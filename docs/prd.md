@@ -5,7 +5,7 @@
 Show, end to end, what it takes to make a small local decision model play a real-time game well. The project has four stages:
 
 1. **Real-time game.** A Pac-Man-style game runs in the browser at a fixed 30 ticks per second, and a local decision model steers it through Ollama's `/v1/systemone` API. The default model is `tev1:4b`. A recorded video shows it playing.
-2. **Teacher data.** A large model (Qwen3.8-27B, served as an OpenAI-compatible chat endpoint) plays and labels game states in the same engine, without real-time pressure. This produces labeled data from real game states.
+2. **Teacher data.** A search oracle labels game states: for each option it plays the real engine forward a few seconds. It needs no model and costs milliseconds per label. A large chat model (Qwen3.8-27B) was evaluated as a teacher and kept only as a comparison, because the oracle plays far better (see `docs/model_evaluation.md`).
 3. **Fine-tuning.** A 0.8B decision model is fine-tuned on that data on a single RTX 5090.
 4. **Evaluation.** The fine-tuned model plays in the same engine against the off-the-shelf baselines.
 
@@ -43,10 +43,10 @@ Ollama's launch post shows a Pac-Man example, but it is a recorded, turn-based r
 
 ### Stage 2: teacher data
 
-- A teacher adapter that asks an OpenAI-compatible chat model for a move and parses a JSON answer. The teacher plays in `lockstep` mode, so the game waits for each answer.
-- State sampling from a mix of policies (teacher, random, and later the student) so the data covers bad positions as well as good ones.
-- Every sampled state is stored with the student-format encoding, the legal options, the teacher's label and reason, and an engine lookahead label for cross-checking.
-- Throughput and concurrency limits that are configurable, because the teacher endpoint is shared.
+- A search oracle labels every sampled state with a value for each option and the best option.
+- State sampling from a mix of policies (oracle, greedy, random, and later the student) so the data covers bad positions as well as good ones.
+- Every sampled state is stored with the student-format encoding, the legal options, the oracle's per-option values, and the chosen label.
+- The chat-model teacher adapter stays available for comparison.
 
 ### Stage 3: fine-tuning
 
@@ -69,11 +69,11 @@ Ollama's launch post shows a Pac-Man example, but it is a recorded, turn-based r
 
 1. **Stage 1:** `tev1:4b` drives the browser game at a steady 30 ticks per second with at least 4 decisions per second, the HUD shows live latency and probabilities, and a recording exists.
 2. **Stage 1:** Over 10 seeded headless games in real-time mode, `tev1:4b` clearly beats a random-legal-move baseline in pellets eaten.
-3. **Stage 2:** At least 20,000 labeled states. On a sample, teacher and lookahead labels agree often enough that disagreements can be reviewed by hand.
+3. **Stage 2:** At least 20,000 labeled states from training seeds only, with per-option values.
 4. **Stage 4:** The fine-tuned 0.8B model stays under 100 ms per decision and matches or beats off-the-shelf `tev1:4b` in pellets eaten and survival on held-out seeds.
 
 ## Open questions
 
 - **How much reasoning belongs in the encoder.** Encoders report facts (distances, counts, ghost states) and never verdicts such as "safe" or a recommended move. See RFC decision 5.
 - **Default game speed.** At arcade speed Pac-Man covers about 7.5 tiles per second, so a 160 ms decision is a little over one tile stale. Pick the default after headless runs have measured score against speed.
-- **Teacher as player or labeler.** The plan uses the teacher for both. The lookahead oracle may turn out to be a better labeler on tactical positions. The Stage 2 cross-check decides.
+- **Information gap between oracle and student.** The oracle sees the full game state, and the student sees only its encoding. How much of the oracle's play the student can learn from features is measured in Stage 4. If the gap is large, enrich the encoder or try a full-map student.
