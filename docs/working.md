@@ -60,6 +60,12 @@
 - In-game (seeds 100-109, realtime): `tev1:0.8b` 69 pellets, `tev1:4b` 148, greedy 201, `pacman-0.8b` 456 (8 of 10 games cleared level 1), `oracle-5s` 1,109.
 - Recorded `docs/media/demo_pacman_08b.mp4` (30 s, seed 100): 2,660 points, 170 pellets, no lives lost.
 
+### 2026-09-30 (wrap-up)
+
+- Recorded `docs/media/demo_tev1_08b.mp4` (30 s, seed 100): 710 points, 71 pellets, two lives lost. The three clips on the same seed now cover the teaching sequence, and the README compares them.
+- Stopped here by decision. The follow-ups (richer encoder, DAgger, full-map student) are listed in `docs/model_evaluation.md` but not planned.
+- The fine-tuned GGUF (`pacman-0.8b`, Q8_0, about 800 MB) and the training data stay outside the repository.
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.
