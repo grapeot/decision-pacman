@@ -9,3 +9,4 @@ runs/
 !.env.example
 .venv/
 __pycache__/
+tmp/
