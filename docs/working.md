@@ -66,6 +66,14 @@
 - Stopped here by decision. The follow-ups (richer encoder, DAgger, full-map student) are listed in `docs/model_evaluation.md` but not planned.
 - The fine-tuned GGUF (`pacman-0.8b`, Q8_0, about 800 MB) and the training data stay outside the repository.
 
+### 2026-09-30 (iOS app)
+
+- Checked feasibility on an iPhone 16 Pro Max (A18 Pro). llama.cpp's Metal backend runs every Qwen3.5 layer, including Gated DeltaNet, on the GPU: 26/26 layers offloaded, 2 graph splits. Decision latency p50 380 ms, p90 431 ms. The results matched Ollama on 60 of 60 decisions, with a maximum probability difference of 0.0003. First model load took 17 s (shader compilation); later loads took 0.37 s.
+- Added `ios/`: a SwiftUI app that bundles the web build in a WKWebView served from `app://local/` and answers the page's decisions with llama.cpp on device through a `WKScriptMessageHandlerWithReply` bridge. A Latency tab keeps the benchmark, `decisionpacman://bench?run_id=` runs it, and the page writes a status heartbeat to `Documents/game_status.json`.
+- Added `src/agent/prompt.ts` (the Ollama System One prompt in TypeScript, byte-identical to the HF chat template on 20 fixtures) and `src/agent/native.ts` (the bridge policy). Added swipe controls, a canvas that fits narrow screens, and relative asset paths.
+- On device the game ran at 30 ticks per second with decisions at p50 420-440 ms through the bridge, and ate 227 pellets in the first 75 s. 27% of answers arrived after Pac-Man had passed their junction (13% on the Mac).
+- Known issue, fixed in the next change: during on-device inference the whole game appeared to stall, ghosts included.
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.
