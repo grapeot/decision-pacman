@@ -180,7 +180,15 @@ Per game, `pacman-0.8b` ate 239, 400, 417, 649, 482, 683, 587, 420, 240, and 446
 
 **Parity between training and serving.** On 50 validation states, the Q8_0 model in Ollama and the bf16 weights in PyTorch agree to within 0.027 in probability (median 0.010), and pick the same option on 48 of 50. The two that differ are near-ties.
 
-**Recordings**, both seed 100 at 1x for 30 s: `docs/media/demo_tev1_4b.mp4` (1,250 points, 101 pellets, one life lost) and `docs/media/demo_pacman_08b.mp4` (2,660 points, 170 pellets, no lives lost).
+**Recordings**, all seed 100 at 1x for 30 s:
+
+| Clip | Model | Score | Pellets | Lives lost |
+|---|---|---|---|---|
+| `docs/media/demo_tev1_08b.mp4` | `tev1:0.8b` | 710 | 71 | 2 |
+| `docs/media/demo_tev1_4b.mp4` | `tev1:4b` | 1,250 | 101 | 1 |
+| `docs/media/demo_pacman_08b.mp4` | `pacman-0.8b` | 2,660 | 170 | 0 |
+
+In the `tev1:0.8b` clip, the option probabilities stay close to uniform (confidence 0.00-0.04).
 
 ## Conclusions
 
@@ -190,7 +198,10 @@ Per game, `pacman-0.8b` ate 239, 400, 417, 649, 482, 683, 587, 420, 240, and 446
 4. Mind the information gap. The oracle sees the full game state, and the student sees only its encoding. Decisions that depend on facts the encoding drops cannot be learned from it. Measure the student against the oracle on held-out states to see how large this gap is.
 5. Invest in the encoder before the model. Keep states compact and factual, and measure every encoder change in tokens as well as accuracy.
 
-## Pending
+## Possible follow-ups (not planned)
 
-- Close the gap to the oracle: enrich the encoder (ghost identities, second-nearest ghost, longer-range pellet counts), then run a DAgger round with states from `pacman-0.8b`'s own games.
-- A full-map student: fine-tune on `ascii-full` with oracle labels and compare.
+The project stops here: the demo sequence (off-the-shelf 0.8B, off-the-shelf 4B, fine-tuned 0.8B) is complete. If it resumes, the gap to the oracle is the obvious target:
+
+- Enrich the encoder: ghost identities, the second-nearest ghost, and longer-range pellet counts.
+- Run a DAgger round with states from `pacman-0.8b`'s own games.
+- Try a full-map student: fine-tune on `ascii-full` with oracle labels and compare.
