@@ -9,7 +9,19 @@ The project goes in four stages:
 3. Fine-tuning a 0.8B decision model on that data.
 4. Evaluating the fine-tuned model against off-the-shelf models on held-out games.
 
-**Status:** Stages 1 to 3 work. A 0.8B model fine-tuned on search-oracle labels averages 456 pellets per game at 63 ms per decision, against 69 for the same-size off-the-shelf `tev1:0.8b` and 148 for `tev1:4b`. Compare the two 30-second recordings on the same seed: [`demo_tev1_4b.mp4`](docs/media/demo_tev1_4b.mp4) (off-the-shelf 4B) and [`demo_pacman_08b.mp4`](docs/media/demo_pacman_08b.mp4) (fine-tuned 0.8B). The plan is in [`docs/prd.md`](docs/prd.md) and [`docs/rfc.md`](docs/rfc.md). The measurements are in [`docs/model_evaluation.md`](docs/model_evaluation.md).
+**Status:** Stages 1 to 3 work. A 0.8B model fine-tuned on search-oracle labels averages 456 pellets per game at 63 ms per decision, against 69 for the same-size off-the-shelf `tev1:0.8b` and 148 for `tev1:4b`. The plan is in [`docs/prd.md`](docs/prd.md) and [`docs/rfc.md`](docs/rfc.md). The measurements are in [`docs/model_evaluation.md`](docs/model_evaluation.md).
+
+## Three models, same game
+
+Each clip is 30 seconds on the same seed at 1x speed:
+
+| Clip | Model | Score | Pellets | Lives lost |
+|---|---|---|---|---|
+| [`demo_tev1_08b.mp4`](docs/media/demo_tev1_08b.mp4) | `tev1:0.8b`, off the shelf, about 70 ms | 710 | 71 | 2 |
+| [`demo_tev1_4b.mp4`](docs/media/demo_tev1_4b.mp4) | `tev1:4b`, off the shelf, about 200 ms | 1,250 | 101 | 1 |
+| [`demo_pacman_08b.mp4`](docs/media/demo_pacman_08b.mp4) | `pacman-0.8b`, fine-tuned, about 60 ms | 2,660 | 170 | 0 |
+
+The small model is fast but its option probabilities are close to uniform. The larger one plays better but answers three times slower. After fine-tuning, the small model plays better than both at the small model's speed.
 
 ## Run it
 
