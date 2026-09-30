@@ -20,7 +20,10 @@ struct DecisionPacmanApp: App {
             }
             .environmentObject(bench)
             .preferredColorScheme(.dark)
-            .onOpenURL { bench.handle(url: $0) }
+            .onOpenURL { url in
+                bench.handle(url: url)
+                WebViewHolder.shared.handle(url: url)
+            }
         }
     }
 }
