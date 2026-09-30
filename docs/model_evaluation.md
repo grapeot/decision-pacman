@@ -82,6 +82,18 @@ Throughput at concurrency 8 was 16 labels per second. The server does not suppor
 
 Ollama's launch post embeds a recorded game as JSON: `nimble:9b-int4`, a 19×21 maze, three ghosts, one decision per tile step (turn-based), 187 moves, 91 ms mean latency on an M5 Max, median confidence 0.58, ending with Pac-Man caught. It confirms that the legal-moves-only option set works. It ships no engine, prompt, or frontend to reuse.
 
+### 8. In-game results (Stage 1, headless)
+
+`scripts/run_headless.ts`, 1x speed, realtime clock (model latency turns into game time), features encoder, junction lookahead, seeds starting at 100. Level 1 has 244 pellets.
+
+| Policy | Games | Mean pellets | Mean score | Mean survival | Decision p50 | Stale answers |
+|---|---|---|---|---|---|---|
+| random | 10 | 30.3 | 311 | 37 s | 0 ms | 0% |
+| greedy (scripted) | 10 | 200.7 | 2,623 | 63 s | 0 ms | 0% |
+| tev1:4b | 3 | 168.7 | 1,833 | 57 s | 207 ms | 10% |
+
+tev1:4b plays far above random and below the scripted baseline, which reads the same facts with hand-written rules. This is the gap the teacher data and fine-tuning stages are meant to close for a 0.8B model. Three games are enough to show that play works, not to rank models. Stage 4 will use more seeds.
+
 ## Conclusions
 
 1. Use `tev1:4b` for the real-time demo. At about 160 ms, a decision is shorter than the typical 400 ms to 1.2 s Pac-Man needs to reach the next junction at arcade speed.
@@ -92,4 +104,4 @@ Ollama's launch post embeds a recorded game as JSON: `nimble:9b-int4`, a 19×21 
 ## Pending
 
 - ollaya models still downloading at the time of writing: `kev` (4B), `kev:9b`, `decider` (0.8B, 2B, 4B), and `winnow:e4b`. Their probe rows will be added here.
-- In-game results from the headless runner (Stage 1) replace the probe as the main evidence for the model choice.
+- More in-game seeds for tev1:4b, plus tev1:0.8b and nimble in the same setup.

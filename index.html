@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Decision Pac-Man</title>
+    <style>
+      :root {
+        --bg: #07070d;
+        --panel: #10111c;
+        --line: #232538;
+        --text: #e6e6f0;
+        --muted: #8a8ca6;
+        --accent: #78ffaa;
+        --warn: #ff6b6b;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .app {
+        display: flex;
+        gap: 16px;
+        padding: 16px;
+        justify-content: center;
+        align-items: flex-start;
+        flex-wrap: wrap;
+      }
+      canvas { display: block; background: #000; border: 1px solid var(--line); border-radius: 6px; }
+      .side { width: 380px; display: flex; flex-direction: column; gap: 12px; }
+      .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
+      .card h2 { margin: 0 0 8px; font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+      .row { display: flex; justify-content: space-between; gap: 8px; }
+      .big { font-size: 20px; font-weight: 700; }
+      .muted { color: var(--muted); }
+      .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 10px; }
+      .stats div span { display: block; color: var(--muted); font-size: 11px; }
+      .bar { display: grid; grid-template-columns: 52px 1fr 48px; gap: 8px; align-items: center; margin: 3px 0; }
+      .bar .track { height: 12px; background: #1b1c2b; border-radius: 3px; overflow: hidden; }
+      .bar .fill { height: 100%; background: #4a5bd6; }
+      .bar.chosen .fill { background: var(--accent); }
+      .bar.chosen .label { color: var(--accent); font-weight: 700; }
+      pre { margin: 0; max-height: 220px; overflow: auto; white-space: pre-wrap; word-break: break-word; font-size: 11px; color: #c9cbe0; }
+      .controls { display: grid; grid-template-columns: 80px 1fr; gap: 6px 8px; align-items: center; }
+      input, select, button {
+        font: inherit; color: var(--text); background: #181a29; border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px;
+      }
+      button { cursor: pointer; }
+      button:hover { border-color: #3a3d5c; }
+      .buttons { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+      .error { border-color: #5c2a2a; color: var(--warn); display: none; }
+      .error.show { display: block; }
+      .error .hint { color: var(--text); margin-top: 4px; }
+      .help { color: var(--muted); font-size: 11px; }
+      @media (max-width: 1000px) { .side { width: 100%; max-width: 560px; } }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <canvas id="game"></canvas>
+      <div class="side">
+        <div class="card">
+          <div class="row">
+            <div><span class="muted">SCORE</span><div class="big" id="score">0</div></div>
+            <div><span class="muted">LIVES</span><div class="big" id="lives">3</div></div>
+            <div><span class="muted">LEVEL</span><div class="big" id="level">1</div></div>
+            <div><span class="muted">PELLETS</span><div class="big" id="pellets">244</div></div>
+          </div>
+        </div>
+        <div class="card error" id="error">
+          <div id="error-message"></div>
+          <div class="hint" id="error-hint"></div>
+        </div>
+        <div class="card">
+          <h2>Decision</h2>
+          <div class="row"><span id="who" class="muted">model</span><span id="confidence" class="muted"></span></div>
+          <div id="bars"></div>
+          <div class="stats" style="margin-top: 8px">
+            <div><span>last</span><b id="lat-last">-</b></div>
+            <div><span>p50</span><b id="lat-p50">-</b></div>
+            <div><span>p90</span><b id="lat-p90">-</b></div>
+            <div><span>decisions/s</span><b id="dps">-</b></div>
+            <div><span>stale</span><b id="stale">-</b></div>
+            <div><span>ticks/s</span><b id="tps">-</b></div>
+          </div>
+        </div>
+        <div class="card">
+          <h2>What the model sees</h2>
+          <pre id="state-view">-</pre>
+        </div>
+        <div class="card">
+          <h2>Controls</h2>
+          <div class="controls">
+            <label for="mode">Player</label>
+            <select id="mode">
+              <option value="ai">Model</option>
+              <option value="human">Keyboard</option>
+            </select>
+            <label for="model">Model</label>
+            <input id="model" list="model-list" value="tev1:4b" />
+            <datalist id="model-list"></datalist>
+            <label for="encoder">Encoder</label>
+            <select id="encoder"></select>
+            <label for="speed">Speed</label>
+            <select id="speed">
+              <option value="0.5">0.5x</option>
+              <option value="0.75">0.75x</option>
+              <option value="1" selected>1x</option>
+              <option value="1.25">1.25x</option>
+            </select>
+            <label for="endpoint">Endpoint</label>
+            <input id="endpoint" />
+          </div>
+          <div class="buttons">
+            <button id="pause">Pause</button>
+            <button id="restart">Restart</button>
+            <button id="export">Download log</button>
+          </div>
+          <p class="help">Arrow keys or WASD play in keyboard mode. Space pauses, R restarts.</p>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
