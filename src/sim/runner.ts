@@ -56,9 +56,9 @@ export function percentile(xs: number[], p: number): number {
   return s[Math.min(s.length - 1, Math.floor(p * s.length))];
 }
 
-async function tryDecide(policy: Policy, enc: EncodedDecision): Promise<{ d: PolicyDecision | null; error?: string }> {
+async function tryDecide(policy: Policy, enc: EncodedDecision, game: GameState): Promise<{ d: PolicyDecision | null; error?: string }> {
   try {
-    return { d: await policy.decide(enc) };
+    return { d: await policy.decide(enc, undefined, game) };
   } catch (err) {
     return { d: null, error: String((err as Error).message ?? err) };
   }
@@ -92,8 +92,8 @@ export async function playGame(o: GameOptionsForRun): Promise<GameSummary> {
 
     const askedTick = s.tick;
     const [played, labeled] = await Promise.all([
-      tryDecide(o.policy, enc),
-      o.labeler && o.labeler !== o.policy ? tryDecide(o.labeler, enc) : Promise.resolve(null),
+      tryDecide(o.policy, enc, s),
+      o.labeler && o.labeler !== o.policy ? tryDecide(o.labeler, enc, s) : Promise.resolve(null),
     ]);
     const d = played.d;
     const label = o.labeler ? (o.labeler === o.policy ? d : (labeled?.d ?? null)) : undefined;

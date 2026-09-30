@@ -1,4 +1,5 @@
 import { greedyPolicy, randomPolicy, systemOnePolicy, type Policy } from "./policies.ts";
+import { oraclePolicy } from "./oracle.ts";
 import { teacherPolicy } from "./teacher.ts";
 
 export interface PolicyEnv {
@@ -8,13 +9,16 @@ export interface PolicyEnv {
 }
 
 /**
- * Policies by name: "random", "greedy", "teacher" and "teacher-think" (the
+ * Policies by name: "random", "greedy", "oracle" (engine rollouts; "oracle-8s-x2"
+ * sets an 8 s horizon and 2 samples), "teacher" and "teacher-think" (the
  * chat model from TEACHER_BASE_URL / TEACHER_MODEL), or any decision model
  * name served on the /v1/systemone endpoint.
  */
 export function makePolicy(name: string, seed: number, env: PolicyEnv): Policy {
   if (name === "random") return randomPolicy(seed);
   if (name === "greedy") return greedyPolicy();
+  const oracle = /^oracle(?:-(\d+(?:\.\d+)?)s)?(?:-x(\d+))?$/.exec(name);
+  if (oracle) return oraclePolicy({ horizonSeconds: oracle[1] ? Number(oracle[1]) : 5, samples: oracle[2] ? Number(oracle[2]) : 1 });
   if (name === "teacher" || name === "teacher-think") {
     if (!env.teacherBaseUrl || !env.teacherModel) {
       throw new Error("Set TEACHER_BASE_URL and TEACHER_MODEL (see .env.example) to use the teacher.");

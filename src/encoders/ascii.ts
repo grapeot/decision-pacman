@@ -44,3 +44,54 @@ export const asciiWindowEncoder: Encoder = {
     return { encoder: "ascii-window", state, instructions: INSTRUCTIONS, criteria, keys, decision: dp };
   },
 };
+
+const FULL_INSTRUCTIONS =
+  "You control Pac-Man (P) in the maze drawn below. Choose which way to go at the next junction (J). " +
+  "Legend: # wall, - ghost-house door, . pellet, o power pellet, G normal ghost, F frightened ghost, " +
+  "space empty floor. Rows are numbered from the top; 'up' decreases the row, 'left' decreases the column. " +
+  "The row through the middle wraps around at both edges (a tunnel). Eating pellets scores points. " +
+  "Touching a normal ghost loses a life. Frightened ghosts can be eaten for bonus points. " +
+  "'back' means turn around right now instead of going to the junction.";
+
+const GHOST_LABEL: Record<string, string> = { blinky: "red", pinky: "pink", inky: "cyan", clyde: "orange" };
+
+/** The whole board as a grid with row and column numbers, plus positions in words. */
+export const asciiFullEncoder: Encoder = {
+  name: "ascii-full",
+  encode(s: GameState, dp: DecisionPoint): EncodedDecision {
+    const lines: string[] = [];
+    const header = Array.from({ length: 28 }, (_, x) => String(x % 10)).join("");
+    lines.push(`   ${header}`);
+    for (let y = 0; y < ROWS; y++) {
+      let row = "";
+      for (let x = 0; x < 28; x++) {
+        const ch = charAt(s, x, y, dp);
+        row += ch === "#" && MAZE_ROWS[y][x] === "-" ? "-" : ch;
+      }
+      lines.push(`${String(y).padStart(2, " ")} ${row}`);
+    }
+    const pac = s.pac;
+    const heading = pac.dir ?? "stopped";
+    const ghosts = s.ghosts
+      .filter((g) => g.state === "active")
+      .map((g) => `${GHOST_LABEL[g.name]} ${g.frightened ? "F" : "G"} at column ${wrapX(Math.round(g.x))}, row ${Math.round(g.y)}, moving ${g.dir}`);
+    const facts = [
+      `Pac-Man at column ${wrapX(Math.round(pac.x))}, row ${Math.round(pac.y)}, heading ${heading}.`,
+      `Next junction J at column ${dp.x}, row ${dp.y}, ${Math.round(dp.distance * 10) / 10} steps ahead.`,
+      ghosts.length ? `Ghosts outside the house: ${ghosts.join("; ")}.` : "No ghosts outside the house.",
+      s.frightTicks > 0 ? `Ghosts are frightened for ${Math.round((s.frightTicks / 30) * 10) / 10} more seconds.` : "",
+      `Lives ${s.lives}, pellets left ${s.foodLeft}.`,
+    ].filter(Boolean);
+    const keys = optionKeys(dp);
+    const criteria: Record<string, string | null> = {};
+    for (const key of keys) criteria[key] = key === "back" ? "turn around now" : null;
+    return {
+      encoder: "ascii-full",
+      state: `${facts.join("\n")}\nMap:\n${lines.join("\n")}`,
+      instructions: FULL_INSTRUCTIONS,
+      criteria,
+      keys,
+      decision: dp,
+    };
+  },
+};

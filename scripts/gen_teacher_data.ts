@@ -1,8 +1,9 @@
 // Generates labeled training states: a player drives the game, and the teacher
 // labels every decision state in the same encoding the student will see.
 //
-//   npm run gen-data -- --player teacher --seconds 30 --seed 1000
-//   npm run gen-data -- --player greedy --labeler teacher-think --games 5 --seed 1100
+//   npm run gen-data -- --games 20 --seed 1000                      # oracle plays and labels
+//   npm run gen-data -- --player random --games 20 --seed 2000      # random play, oracle labels
+//   npm run gen-data -- --player teacher --labeler teacher --seconds 30 --seed 1000
 //
 // The game waits for answers (lockstep clock). Train on seeds 1000 and up,
 // validate on 900-999, and keep 100-199 for evaluation only.
@@ -10,7 +11,7 @@ import { appendFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { loadDotEnv, makePolicy, policyEnvFromProcess } from "../src/agent/factory.ts";
-import type { TeacherDecision } from "../src/agent/teacher.ts";
+import type { PolicyDecision } from "../src/agent/policies.ts";
 import { ENCODERS } from "../src/encoders/index.ts";
 import { playGame, percentile, type GameSummary } from "../src/sim/runner.ts";
 
@@ -18,8 +19,8 @@ loadDotEnv();
 
 const { values: args } = parseArgs({
   options: {
-    player: { type: "string", default: "teacher" },
-    labeler: { type: "string", default: "teacher" },
+    player: { type: "string", default: "oracle-5s" },
+    labeler: { type: "string", default: "oracle-5s" },
     encoder: { type: "string", default: "features" },
     games: { type: "string", default: "1" },
     seed: { type: "string", default: "1000" },
@@ -42,7 +43,8 @@ async function main() {
   const encoder = ENCODERS[args.encoder!];
   if (!encoder) throw new Error(`unknown encoder ${args.encoder}`);
 
-  const tag = `${new Date().toISOString().replace(/[:.]/g, "-")}_${args.player}_${args.labeler}_s${seed0}`.replace(/[^\w.-]/g, "_");
+  // Include the encoder and pid so runs started in the same millisecond never share a directory.
+  const tag = `${new Date().toISOString().replace(/[:.]/g, "-")}_${args.player}_${args.labeler}_${args.encoder}_s${seed0}_p${process.pid}`.replace(/[^\w.-]/g, "_");
   const dir = join(args.out!, tag);
   mkdirSync(dir, { recursive: true });
   const dataPath = join(dir, "states.jsonl");
@@ -69,7 +71,7 @@ async function main() {
       speed: Number(args.speed),
       maxSeconds: Number(args.seconds),
       onDecision: (ev) => {
-        const label = ev.label as TeacherDecision | null | undefined;
+        const label = ev.label as (PolicyDecision & { reason?: string }) | null | undefined;
         if (!label) {
           unlabeled++;
           if (ev.error) errors.push(ev.error);
@@ -93,6 +95,7 @@ async function main() {
             instructions: ev.enc.instructions,
             criteria: ev.enc.criteria,
             label: label.choice,
+            values: label.values ?? null,
             reason: label.reason ?? null,
             label_latency_ms: Math.round(label.latencyMs),
             player_choice: ev.decision?.choice ?? null,
