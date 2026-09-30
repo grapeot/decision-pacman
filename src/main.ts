@@ -86,7 +86,7 @@ function restart(): void {
 // ---- agent -------------------------------------------------------------------
 function makePolicy() {
   if (bridge) return nativePolicy(bridge, ON_DEVICE_MODEL);
-  return systemOnePolicy({ baseUrl: config.endpoint, model: config.model });
+  return systemOnePolicy({ baseUrl: config.endpoint, model: config.model, hosted: import.meta.env.VITE_DECISION_HOSTED === "1" });
 }
 
 const agent = new AgentLoop(

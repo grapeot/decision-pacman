@@ -1,6 +1,7 @@
 """Score oracle-labeled validation states through a /v1/systemone endpoint.
 
   python3 training/score_ollama.py --model tev1:0.8b --n 1000 --out runs/score_tev1_08b.json
+  TYPESAFE_API_KEY=... python3 training/score_ollama.py --base-url https://api.typesafe.ai --model jev-latest
 
 Sends each state exactly as the game client does and reports agreement with
 the oracle's best option: overall, on decisive states (oracle target above
@@ -37,13 +38,15 @@ def load_states(data_dir: str, temperature: float) -> list[dict]:
 
 
 def ask(base: str, model: str, r: dict) -> dict:
+    api_key = os.environ.get("TYPESAFE_API_KEY")
     body = {
         "model": model,
-        "keep_alive": -1,
+        **({} if api_key else {"keep_alive": -1}),
         "state": r["state"],
         "questions": {"move": {"type": "choice", "instructions": r["instructions"], "criteria": r["criteria"]}},
     }
-    req = urllib.request.Request(base.rstrip("/") + "/v1/systemone", data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
+    headers = {"Content-Type": "application/json", **({"Authorization": f"Bearer {api_key}"} if api_key else {})}
+    req = urllib.request.Request(base.rstrip("/") + "/v1/systemone", data=json.dumps(body).encode(), headers=headers)
     t = time.perf_counter()
     out = json.loads(urllib.request.urlopen(req, timeout=120).read())
     move = out["answers"]["move"]
