@@ -6,6 +6,8 @@ enum DecisionEngineError: LocalizedError {
     case contextFailed
     case decodeFailed(Int32)
     case tokenizeFailed
+    case grammarFailed
+    case noAnswer(String)
 
     var errorDescription: String? {
         switch self {
@@ -13,6 +15,8 @@ enum DecisionEngineError: LocalizedError {
         case .contextFailed: return "Could not create an inference context"
         case .decodeFailed(let code): return "llama_decode failed with code \(code)"
         case .tokenizeFailed: return "Tokenization failed"
+        case .grammarFailed: return "Could not parse the answer grammar"
+        case .noAnswer(let text): return "The model gave no complete move: \(text.prefix(80))"
         }
     }
 }
@@ -66,15 +70,15 @@ final class DecisionEngine {
         llama_model_free(model)
     }
 
-    static func tokenize(vocab: OpaquePointer, text: String, parseSpecial: Bool) throws -> [llama_token] {
+    static func tokenize(vocab: OpaquePointer, text: String, parseSpecial: Bool, addSpecial: Bool = false) throws -> [llama_token] {
         let utf8Count = Int32(text.utf8.count)
         var capacity = utf8Count + 16
         var tokens = [llama_token](repeating: 0, count: Int(capacity))
-        var count = llama_tokenize(vocab, text, utf8Count, &tokens, capacity, false, parseSpecial)
+        var count = llama_tokenize(vocab, text, utf8Count, &tokens, capacity, addSpecial, parseSpecial)
         if count < 0 {
             capacity = -count
             tokens = [llama_token](repeating: 0, count: Int(capacity))
-            count = llama_tokenize(vocab, text, utf8Count, &tokens, capacity, false, parseSpecial)
+            count = llama_tokenize(vocab, text, utf8Count, &tokens, capacity, addSpecial, parseSpecial)
         }
         guard count > 0 else { throw DecisionEngineError.tokenizeFailed }
         return Array(tokens.prefix(Int(count)))

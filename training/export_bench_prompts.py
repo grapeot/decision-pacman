@@ -1,7 +1,7 @@
 """Export rendered prompts with reference probabilities for on-device benchmarks.
 
   python training/export_bench_prompts.py --tokenizer runs/ft_v1/merged \
-      --reference runs/score_pacman_08b.json --n 20 --out ios/PacmanBench/bench_prompts.json
+      --reference runs/score_pacman_08b.json --n 20 --out ios/mac_check/bench_prompts.json
 
 Takes the same validation rows as score_ollama.py, renders each with the
 model's chat template exactly as served (thinking off), and attaches the
