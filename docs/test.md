@@ -11,12 +11,14 @@
 
 ## Integration tests (opt-in, need a running Ollama)
 
-- `npm run test:live`: skipped unless `LIVE_DECISION_API=1`. It sends one request per encoder to each configured model and checks the response schema, that the chosen option is in the option set, and that the probabilities sum to about 1.
-- `npm run probe`: prints latency and token counts per encoder and model. Record the results in `working.md` when models, encoders, or hardware change.
+- Planned, not implemented yet: `npm run test:live`, skipped unless `LIVE_DECISION_API=1`. It sends one request per encoder to each configured model and checks the response schema, that the chosen option is in the option set, and that the probabilities sum to about 1.
+- `python3 scripts/probe_decision_models.py <model>`: prints latency, input tokens, and accuracy on 40 synthetic scenarios per model. Record the results in `working.md` when models, encoders, or hardware change.
 
 ## Headless evaluation (manual, needs Ollama)
 
-`npm run headless -- --model tev1:4b --encoder features --clock realtime --games 10 --seed 1` plays full games and writes JSONL under `runs/` (gitignored). A change to an encoder or to the agent loop is done when its summary is compared against the previous run and the `random` and `greedy` baselines on the same seeds, and the comparison is written to `working.md`.
+The full protocol is in [guides/evaluate.md](guides/evaluate.md).
+
+`npm run headless -- --policy tev1:4b --encoder features --clock realtime --games 10 --seed 100 --max-seconds 300` plays full games and writes JSONL under `runs/` (gitignored). A change to an encoder or to the agent loop is done when its summary is compared against the previous run and the `random` and `greedy` baselines on the same seeds, and the comparison is written to `working.md`.
 
 ## Manual browser check
 
