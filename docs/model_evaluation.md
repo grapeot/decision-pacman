@@ -309,6 +309,35 @@ On the 40-scenario Pac-Man probe (section 4), rerun on the same day, the order r
 
 The practical reading is that `pacman-0.8b` replaces a general decision model rather than extending one. It is the better choice when the model only ever plays this game, and the worse one when the same model must also route tickets or check policies. Keeping both would mean serving two adapters, or training the Pac-Man data together with general decisions, which was not tried.
 
+### 16. Lookahead for a closed model
+
+Section 13's lookahead reached Qwen through its prompt, so nothing about it needs open weights. The `features-peek5s` encoder puts the same facts into the `/v1/systemone` state, so any decision model can receive them, including a hosted one. It is the features encoding plus `lookahead_5s`: for each option, the outcome of `peek()` (play the option, then greedy moves for 5 s) as seconds until death or null, pellets, power pellets, ghosts eaten, and points. The instructions add one paragraph with section 13's wording: what the rollout is, that frightened ghosts turn at random, that it is one possible future, and what each field means. Like every encoder, it reports outcomes and never says which option is better.
+
+Seeds 100-109, realtime clock, 1x speed, 5-minute cap. Both models play the same encoder; only the model differs.
+
+| Player | Encoder | Mean pellets | Mean score | Mean survival | Mean level reached | Decision p50 | Stale answers | Input tokens per decision |
+|---|---|---|---|---|---|---|---|---|
+| Jev (section 12) | features | 178 | 2,482 | 52 s | 1.0 | 115 ms | 3.0% | 609 |
+| **Jev** | features-peek5s | **567** | **9,150** | 175 s | 2.5 | 111 ms | 2.2% | 865 |
+| `tev1:4b` (section 11) | features | 148 | 1,660 | 55 s | 1.0 | 202 ms | 10.7% | 368 |
+| `tev1:4b` | features-peek5s | 212 | 2,907 | 68 s | 1.0 | 260 ms | 8.6% | 578 |
+| `oracle-5s` (section 10) | features | 1,109 | 19,789 | 300 s (cap) | 4.7 | 5 ms | 0% | - |
+| Qwen3.8-27B, lockstep (section 13) | features + lookahead in the prompt | 1,396 | 22,054 | 299 s | 6.0 | 309 ms | - | 471 (chat prompt) |
+
+Per game, Jev with lookahead ate 432, 730, 481, 418, 972, 966, 301, 671, 461, and 234 pellets. Every game ended with all three lives lost; two (seeds 104 and 105) lasted to about the 5-minute mark and reached level 4. `tev1:4b` with lookahead ate between 171 and 237 pellets and never cleared level 1.
+
+**Jev gains more than threefold.** The same closed model, with no change but its input, went from 178 to 567 pellets and from 52 s to 175 s. That is above the greedy rule (201) and the fine-tuned `pacman-0.8b` on features (456). Its latency did not change: the 256 extra tokens cost the hosted service nothing measurable.
+
+**It reads the facts, imperfectly.** In 5,760 states where at least one option died in its rollout and at least one survived, Jev chose a dying option 12.8% of the time (`tev1:4b`: 16.8%). These are mostly deaths far down the rollout: Jev chose an option that died within 1.5 s only 20 times. In 441 of its 739 dying choices, that option promised more points than every surviving one. Its probability on those choices was lower (mean confidence 0.43 against 0.65). When every option died, it took the latest death 65% of the time. The rollouts themselves are pessimistic, because they play greedy after the first junction; before most deaths Jev had spent several decisions in states where every rollout died.
+
+**`tev1:4b` gains little.** 148 to 212 pellets is a 43% gain, against more than 200% for Jev and about 360% for Qwen (lockstep). Part of the gap is latency: the extra 210 tokens took its p50 from 202 ms to 260 ms, and an answer applies about eight ticks after the state it was asked about. The rest is how the model reads the same facts.
+
+**Cost.** The 10 Jev games used 9.72 million input tokens over 11,231 decisions, about $0.41 at the $0.042 per million seen on Vercel AI Gateway (section 12, conclusion 7). Games last three times longer, so the run cost about five times the features-only run.
+
+**What this says.** The input knob is open to a closed model, and it took Jev past the fine-tuned student: Jev with lookahead (567) outplays `pacman-0.8b` on plain features (456). How much the knob is worth depends on the model: the same facts gave `tev1:4b` 43%, Jev about 220%, and Qwen about 360%. And for Jev the facts are worth less than a fixed formula over them: `oracle-5s` scores the same rollouts and averages 1,109 pellets. Once the input contains the outcomes, a model earns its place only by weighing them better than a formula does, which Qwen did and Jev did not.
+
+**Caveats.** Qwen's numbers are lockstep, where the game waits for each answer; Jev's and `tev1:4b`'s are realtime. The rollouts run inside the encoder, before the request is timed, so their 5-10 ms of CPU is not charged to game time as the oracle's is. One run per seed; Jev's games vary from 234 to 972 pellets. `tev1:4b` ran on local Ollama with no other games running.
+
 ## Conclusions
 
 1. Use `tev1:4b` for the real-time demo. At about 160 ms, a decision is shorter than the typical 400 ms to 1.2 s Pac-Man needs to reach the next junction at arcade speed.
