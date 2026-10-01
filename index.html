@@ -56,6 +56,8 @@
       .error.show { display: block; }
       .error .hint { color: var(--text); margin-top: 4px; }
       .help { color: var(--muted); font-size: 11px; }
+      .check { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+      .check input { width: auto; margin: 0; }
       @media (max-width: 1000px) { .side { width: 100%; max-width: 560px; } }
       @media (max-width: 600px) { .app { padding: 8px; gap: 8px; } }
     </style>
@@ -114,6 +116,8 @@
               <option value="1" selected>1x</option>
               <option value="1.25">1.25x</option>
             </select>
+            <label for="wait">Wait</label>
+            <label class="check"><input id="wait" type="checkbox" /> wait for the model at junctions</label>
             <label for="endpoint">Endpoint</label>
             <input id="endpoint" />
           </div>
@@ -123,7 +127,7 @@
             <button id="sound">Sound: on</button>
             <button id="export">Download log</button>
           </div>
-          <p class="help">Arrow keys, WASD, or swipes play in keyboard mode. Space pauses, R restarts, M mutes.</p>
+          <p class="help">"Wait" holds the whole game at a junction until a slow model answers, so its choices are judged, not its speed. Arrow keys, WASD, or swipes play in keyboard mode. Space pauses, R restarts, M mutes.</p>
         </div>
       </div>
     </div>

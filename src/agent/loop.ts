@@ -1,4 +1,5 @@
-import { findDecisionPoint, isStillAhead, pacTilesPerSecond } from "../engine/decision.ts";
+import { findDecisionPoint, isStillAhead, pacTilesPerSecond, type DecisionPoint } from "../engine/decision.ts";
+import { TPS } from "../engine/game.ts";
 import type { GameState, StepInput } from "../engine/types.ts";
 import { optionToInput, type Encoder } from "../encoders/types.ts";
 import type { Policy } from "./policies.ts";
@@ -39,6 +40,17 @@ export function lookaheadTiles(s: GameState, expectedLatencyMs: number): number 
   return pacTilesPerSecond(s) * (expectedLatencyMs / 1000) * 1.25 + 0.3;
 }
 
+/**
+ * In wait-for-model mode, whether the game should hold this tick: a question about `pending` is in
+ * flight and Pac-Man would reach that junction's center within the next tick. Ghosts and timers hold
+ * too, so a slow model is judged on its choices, not its speed.
+ */
+export function shouldHold(s: GameState, pending: DecisionPoint | null): boolean {
+  if (!pending || s.phase !== "playing") return false;
+  const dp = findDecisionPoint(s);
+  return dp.key === pending.key && dp.distance <= pacTilesPerSecond(s) / TPS + 0.05;
+}
+
 /** Exponential moving average of decision latency, used to size the lookahead. */
 export class LatencyEstimate {
   constructor(public value = 250) {}
@@ -56,6 +68,10 @@ export class AgentLoop {
   private running = false;
   private controller: AbortController | null = null;
   private latency = new LatencyEstimate();
+  /** Ask about the very next junction and let the game hold there until the answer arrives. */
+  waitForModel = false;
+  /** The junction an in-flight question is about. */
+  pending: DecisionPoint | null = null;
 
   constructor(
     private hooks: AgentHooks,
@@ -75,6 +91,7 @@ export class AgentLoop {
 
   stop(): void {
     this.running = false;
+    this.pending = null;
     this.controller?.abort();
   }
 
@@ -88,7 +105,7 @@ export class AgentLoop {
         await sleep(50);
         continue;
       }
-      const lookahead = lookaheadTiles(game, this.latency.value);
+      const lookahead = this.waitForModel ? 0 : lookaheadTiles(game, this.latency.value);
       const dp = findDecisionPoint(game, lookahead);
       const enc = this.encoder.encode(game, dp);
       if (enc.keys.length === 1) {
@@ -101,8 +118,10 @@ export class AgentLoop {
       this.controller = new AbortController();
       // The player can be switched while a request is in flight; its answer then belongs to nobody.
       const policy = this.policy;
+      this.pending = dp;
       try {
         const d = await policy.decide(enc, this.controller.signal, game);
+        this.pending = null;
         if (policy !== this.policy) continue;
         backoff = 500;
         this.latency.update(d.latencyMs);
@@ -132,6 +151,7 @@ export class AgentLoop {
         for (let i = 0; i < 10 && this.hooks.getState().tick <= applied; i++) await sleep(5);
         if (d.latencyMs < 5) await sleep(33);
       } catch (err) {
+        this.pending = null;
         if ((err as Error).name === "AbortError") return;
         if (policy !== this.policy) continue;
         this.hooks.onError(err);

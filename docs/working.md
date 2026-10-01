@@ -168,6 +168,11 @@
 
 - Added a 0.25x speed option for the slow on-device phi4-mini. On the iPhone 16 Pro Max at 0.25x, phi4-mini still answered in 2.5-2.6 s per decision with the thermal state at "serious", and 8 of 18 decisions in the first minute arrived after Pac-Man had passed the junction.
 
+### 2026-10-01 (wait for the model)
+
+- Added a "Wait" switch (checkbox, `?wait=1`, `decisionpacman://control?wait=1`, `window.__pacman.setWaitForModel`). The model is asked about the very next junction while the game keeps moving; if Pac-Man is about to reach that junction before the answer arrives, the whole game (ghosts and timers included) holds until it does. A slow model is then judged on its choices, not its speed. The status report includes `waitForModel`.
+- On the iPhone 16 Pro Max, phi4-mini at 1x with Wait on: 26 decisions, none late, about 2.2 s each; the game held in the windows where it waited (0-11 ticks per 2 s instead of 60). Without Wait at 0.25x, 8 of 18 decisions had been late.
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.
