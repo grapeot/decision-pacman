@@ -108,6 +108,14 @@
 - 10 evaluation games each, realtime, 1x, 5-minute cap: `qwen3.5:4b` 197 pellets, 2,553 points, 47 s, p50 267 ms, 9% stale; `gemma4:e4b` 230 pellets, 3,276 points, 55 s, p50 253 ms, 4% stale, 1 level cleared; `phi4-mini` 232 pellets, 3,142 points, 55 s, p50 187 ms, 4% stale, 2 levels cleared. No failed answers in 5,950 decisions. Jev was 178 pellets.
 - Oracle agreement on 1,000 validation states: `qwen3.5:4b` 45.4% (cross-entropy 1.67), `gemma4:e4b` 43.6%, `phi4-mini` 44.0% (1.72). Jev was 39.9%, `tev1:4b` 38.4%.
 
+### 2026-09-30 (cost of specialization)
+
+- Added `scripts/eval_general_decisions.py`: scores models through `/v1/systemone` on JevBench's public items (MIT, pinned commit, hash-checked, downloaded to `data/jevbench/`). Items over 4,000 characters are skipped because the loaded models have a 2,050-token context: 194 of 231 items remain (48 easy, 72 standard, 74 hard).
+- Ollama 0.35.0, M3 Ultra, one pass per model. Accuracy (probability on the correct option), p50 latency: `tev1:4b` 0.81 (0.79), 196 ms; `tev1:0.8b` 0.66 (0.63), 68 ms; `pacman-0.8b` 0.49 (0.36), 69 ms. Chance is 0.32. By tier, `pacman-0.8b` against `tev1:0.8b`: easy 0.79 vs 1.00, standard 0.39 vs 0.69, hard 0.39 vs 0.41.
+- `pacman-0.8b` favors the first two options (166 of 194 picks, against 120 correct) and says yes on 85% of yes/no items (labels: 47%).
+- Same-day rerun of the Pac-Man probe, accuracy (probability on the correct move): `tev1:4b` 0.88 (0.64), `tev1:0.8b` 0.42 (0.40), `pacman-0.8b` 0.93 (0.52). The probe repeats its seed-42 scenarios, so its latency is not reported here; earlier runs of the same states could be cached.
+- JevBench's published per-item results for Jev 1.13.0 give 0.89 on the same 194 items.
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.
