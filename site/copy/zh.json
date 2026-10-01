@@ -1,0 +1,108 @@
+{
+  "meta": {
+    "title": "决策吃豆人：一个 0.8B 小模型打赢了光环",
+    "description": "一个花一个下午蒸馏出来的 0.8B 模型，玩吃豆人比托管的决策服务还好。看它玩，自己玩，再看看花了多少成本。"
+  },
+  "nav": {
+    "lang": "English"
+  },
+  "hero": {
+    "kicker": "决策吃豆人",
+    "title": "托管决策模型 vs 我们自己训的 0.8B",
+    "subtitle": "同一个迷宫，同一个种子，同样 30 秒。左边是 Jev，右边是我们蒸馏的 0.8B。",
+    "jev_label": "Jev（托管决策 API）",
+    "ours_label": "蒸馏 0.8B（我们的）",
+    "jev_stat": "吃到 {pellets} 颗豆 · 丢 {lives_lost} 条命",
+    "ours_stat": "吃到 {pellets} 颗豆 · 丢 {lives_lost} 条命",
+    "note": "各自一局 30 秒。完整 10 局平均：Jev {jev_avg} 颗，我们 {ours_avg} 颗。",
+    "replay": "重播"
+  },
+  "play": {
+    "title": "轮到你了",
+    "lead": "同一个迷宫，同一个种子，30 秒。你能赢过模型吗？",
+    "start": "开始",
+    "eyes_toggle": "用模型的眼睛玩",
+    "eyes_hint": "看不到迷宫，只能看到模型收到的文字。每个路口游戏都会停下来等你选。",
+    "time_left": "时间",
+    "pellets": "豆子",
+    "lives": "命",
+    "result_title": "时间到。你吃了 {pellets} 颗豆，排第 {rank} / {total}。",
+    "result_you": "你",
+    "again": "再来一局",
+    "controls_hint": "方向键或 WASD。手机上在迷宫里滑动。",
+    "eyes_waiting": "吃豆人停在路口等你，选一个方向。",
+    "eyes_next": "下一个路口，随时可以先选",
+    "sound_on": "声音开",
+    "sound_off": "声音关"
+  },
+  "halo": {
+    "title": "剥掉光环",
+    "lead": "Jev 是专门为决策训练的托管模型。phi4-mini 是没人为这件事训练过的普通开源模型。同样 30 秒。",
+    "jev_label": "Jev（托管决策 API）",
+    "phi_label": "phi4-mini（普通开源模型）",
+    "phi_stat": "吃到 {pellets} 颗豆 · 丢 {lives_lost} 条命",
+    "chart_title": "每局平均吃豆数，10 局",
+    "chart_note": "features 输入，实时时钟，种子 100-109，1 倍速。阴影区间是现成模型和手写规则所在的位置。",
+    "chart_band": "现成模型 + 规则",
+    "chart_labels": {
+      "random": "随机",
+      "tev1_08b": "tev1:0.8b",
+      "tev1_4b": "tev1:4b",
+      "jev": "Jev",
+      "qwen35_4b": "qwen3.5:4b",
+      "greedy": "贪心规则",
+      "gemma4_e4b": "gemma4:e4b",
+      "phi4_mini": "phi4-mini",
+      "ours": "蒸馏 0.8B"
+    },
+    "offline_title": "而且能在手机上跑",
+    "offline_body": "复现的 0.8B 可以在 iPhone 上完全离线运行，不需要服务器。",
+    "unmute": "打开声音",
+    "mute": "静音"
+  },
+  "paths": {
+    "title": "不满意？两条路",
+    "lead": "现成模型不够好的时候，可以让它更专，也可以让它想得更多。",
+    "a_title": "专精：微调",
+    "a_body": "用大模型当老师，教小模型做好一件事。",
+    "b_title": "把智能往上挪",
+    "b_body": "直接用大模型，让它思考。Qwen3.8-27B 从 {off} 颗涨到 {on} 颗，前提是游戏等它。",
+    "b_timer_fast": "蒸馏 0.8B：每步 {s} 秒",
+    "b_timer_slow": "27B 思考：每步 {s} 秒"
+  },
+  "recipe": {
+    "s1_title": "27B 老师给游戏状态打标签",
+    "s1_cost": "约 54,000 个状态 · 约 1 小时",
+    "s2_title": "一张 GPU 训练学生",
+    "s2_cost": "32 分钟",
+    "s3_title": "得到一个小模型",
+    "s3_cost": "795 MB",
+    "s4_title": "在 iPhone 上离线运行",
+    "s4_cost": "每步约 0.5 秒",
+    "note": "微调是在体积、速度、成本、场景和智能之间做取舍：在通用决策题上，它的分数从 0.66 降到 0.53。"
+  },
+  "builder": {
+    "title": "从使用者到建造者",
+    "closed_title": "封闭服务",
+    "closed_body": "能处理你的场景就用，不能就换一家。",
+    "yours_title": "你自己的模型",
+    "yours_body": "每个维度都可以调：体积、速度、成本、在哪跑、擅长什么。",
+    "quote": "问题从“该选哪个服务”变成了“该造什么”。"
+  },
+  "cta": {
+    "title": "学会自己造",
+    "body": "我们教完整的闭环：选老师、造数据、微调、评测、上线。",
+    "button": "了解 AI Builders 课程"
+  },
+  "footer": {
+    "run_title": "自己跑这个模型",
+    "links_title": "延伸阅读",
+    "repo": "GitHub 仓库",
+    "model": "Hugging Face 模型",
+    "results": "结果汇总",
+    "notebook": "实验笔记",
+    "fineprint": "结果只针对这一个游戏。每个玩家 10 局。实时模式的分数在不同批次之间会有波动。",
+    "copy": "复制",
+    "copied": "已复制"
+  }
+}

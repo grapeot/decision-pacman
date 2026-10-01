@@ -1,0 +1,108 @@
+{
+  "meta": {
+    "title": "Decision Pac-Man: a 0.8B model that beats the halo",
+    "description": "A 0.8B model, distilled in an afternoon, plays Pac-Man better than a hosted decision service. Watch it, play it, and see what it cost."
+  },
+  "nav": {
+    "lang": "中文"
+  },
+  "hero": {
+    "kicker": "Decision Pac-Man",
+    "title": "A hosted decision model vs. a 0.8B we trained ourselves",
+    "subtitle": "Same maze, same seed, same 30 seconds. Left: Jev. Right: our distilled 0.8B.",
+    "jev_label": "Jev (hosted decision API)",
+    "ours_label": "Distilled 0.8B (ours)",
+    "jev_stat": "{pellets} pellets · {lives_lost} life lost",
+    "ours_stat": "{pellets} pellets · {lives_lost} lives lost",
+    "note": "One 30-second game each. Over 10 full games: Jev {jev_avg} pellets on average, ours {ours_avg}.",
+    "replay": "Replay"
+  },
+  "play": {
+    "title": "Your turn",
+    "lead": "Same maze, same seed, 30 seconds. Can you beat the models?",
+    "start": "Start",
+    "eyes_toggle": "Play with the model's eyes",
+    "eyes_hint": "No maze. You only get the text the model gets, and the game waits at every junction for your pick.",
+    "time_left": "Time",
+    "pellets": "Pellets",
+    "lives": "Lives",
+    "result_title": "Time's up. You ate {pellets} pellets: #{rank} of {total}.",
+    "result_you": "You",
+    "again": "Play again",
+    "controls_hint": "Arrow keys or WASD. On a phone, swipe on the maze.",
+    "eyes_waiting": "Pac-Man is waiting at the junction. Pick a way.",
+    "eyes_next": "Next junction, answer any time",
+    "sound_on": "Sound on",
+    "sound_off": "Sound off"
+  },
+  "halo": {
+    "title": "Peel off the halo",
+    "lead": "Jev is a hosted model trained for decisions. phi4-mini is a plain open model nobody trained for this. Same 30 seconds.",
+    "jev_label": "Jev (hosted decision API)",
+    "phi_label": "phi4-mini (plain open model)",
+    "phi_stat": "{pellets} pellets · {lives_lost} lives lost",
+    "chart_title": "Mean pellets per game, 10 games",
+    "chart_note": "Features input, realtime clock, seeds 100-109, 1x speed. The shaded band is where off-the-shelf models and a hand-written rule land.",
+    "chart_band": "off-the-shelf + rule",
+    "chart_labels": {
+      "random": "Random",
+      "tev1_08b": "tev1:0.8b",
+      "tev1_4b": "tev1:4b",
+      "jev": "Jev",
+      "qwen35_4b": "qwen3.5:4b",
+      "greedy": "Greedy rule",
+      "gemma4_e4b": "gemma4:e4b",
+      "phi4_mini": "phi4-mini",
+      "ours": "Distilled 0.8B"
+    },
+    "offline_title": "And it runs on a phone",
+    "offline_body": "A reproduction of the 0.8B runs fully offline on an iPhone, no server involved.",
+    "unmute": "Unmute",
+    "mute": "Mute"
+  },
+  "paths": {
+    "title": "Not satisfied? Two paths",
+    "lead": "When an off-the-shelf model is not good enough, you can make it narrower, or make it think harder.",
+    "a_title": "Specialize: fine-tune",
+    "a_body": "Teach a small model one job, using a big model as the teacher.",
+    "b_title": "Move intelligence up",
+    "b_body": "Use the big model directly and let it think. Qwen3.8-27B goes from {off} to {on} pellets, if the game waits for it.",
+    "b_timer_fast": "Distilled 0.8B: {s} s per move",
+    "b_timer_slow": "27B thinking: {s} s per move"
+  },
+  "recipe": {
+    "s1_title": "A 27B teacher labels game states",
+    "s1_cost": "~54,000 states · about 1 hour",
+    "s2_title": "One GPU trains the student",
+    "s2_cost": "32 minutes",
+    "s3_title": "A small model comes out",
+    "s3_cost": "795 MB",
+    "s4_title": "It runs offline on an iPhone",
+    "s4_cost": "~0.5 s per move",
+    "note": "Fine-tuning trades size, speed, cost, scenario, and intelligence: on general decision questions it scores 0.53 instead of 0.66."
+  },
+  "builder": {
+    "title": "From user to builder",
+    "closed_title": "A closed service",
+    "closed_body": "If it handles your case, use it. If not, switch vendors.",
+    "yours_title": "Your own model",
+    "yours_body": "Every dimension can move: size, speed, cost, where it runs, what it is good at.",
+    "quote": "The question changes from \"which service should I pick\" to \"what should I build\"."
+  },
+  "cta": {
+    "title": "Learn to build this",
+    "body": "We teach the whole loop: pick a teacher, make data, fine-tune, evaluate, ship.",
+    "button": "See the AI Builders course"
+  },
+  "footer": {
+    "run_title": "Run the model yourself",
+    "links_title": "Read more",
+    "repo": "GitHub repo",
+    "model": "Model on Hugging Face",
+    "results": "Results",
+    "notebook": "The lab notebook",
+    "fineprint": "Results are for this one game. 10 games per player. Realtime scores vary between runs.",
+    "copy": "Copy",
+    "copied": "Copied"
+  }
+}
