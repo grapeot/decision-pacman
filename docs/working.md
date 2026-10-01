@@ -94,6 +94,12 @@
 - Recorded `docs/media/demo_jev.mp4` (30 s, seed 100): 900 points, 86 pellets, one life lost. Browser p50 was about 210 ms through the dev proxy while other runs shared the API.
 - Jev adds about 300 input tokens of its own per request (325 for a trivial state).
 
+### 2026-09-30 (Qwen with thinking and lookahead)
+
+- Split the oracle's rollout into `rollout()` and added `peek()`, which reports a rollout as facts (seconds until death, pellets, power pellets, ghosts eaten, points).
+- Added `teacher-peek<N>s` (and `teacher-think-peek<N>s`): the Qwen teacher gets one N-second simulated future per option in its prompt.
+- Lockstep, 5-minute cap: Qwen with 5 s lookahead (thinking off) averaged 1,396 pellets and 22,054 points over seeds 100-109, all games reaching level 6, p50 309 ms. Qwen with thinking and no lookahead averaged 531 pellets over seeds 100-102 and lost all lives within 97-131 s, p50 2.4 s.
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.
