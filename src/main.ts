@@ -1,4 +1,4 @@
-import { AgentLoop, type DecisionRecord } from "./agent/loop.ts";
+import { AgentLoop, shouldHold, type DecisionRecord } from "./agent/loop.ts";
 import { DecisionApiError } from "./agent/client.ts";
 import { systemOnePolicy } from "./agent/policies.ts";
 import { llmPolicy } from "./agent/llm.ts";
@@ -28,6 +28,8 @@ const config = {
   model: bridge ? initialPlayer() : (params.get("model") ?? import.meta.env.VITE_DEFAULT_MODEL ?? "tev1:4b"),
   encoder: params.get("encoder") ?? DEFAULT_ENCODER,
   speed: Number(params.get("speed") ?? "1"),
+  /** Hold the game at a junction until the model answers (for slow on-device models). */
+  waitForModel: params.get("wait") === "1",
   endpoint: params.get("endpoint") ?? defaultEndpoint,
   seed: Number(params.get("seed") ?? Math.floor(Math.random() * 1e6)),
 };
@@ -126,6 +128,7 @@ const agent = new AgentLoop(
   makePolicy(),
   ENCODERS[config.encoder] ?? ENCODERS[DEFAULT_ENCODER],
 );
+agent.waitForModel = config.waitForModel;
 
 function syncAgent(): void {
   agent.policy = makePolicy();
@@ -154,6 +157,10 @@ function frame(now: number): void {
     acc += dt;
     let steps = 0;
     while (acc >= STEP_MS && steps < 5) {
+      if (config.mode === "ai" && config.waitForModel && shouldHold(game, agent.pending)) {
+        acc = 0;
+        break;
+      }
       step(game, pending);
       audio.onTick(game);
       pending = {};
@@ -196,7 +203,8 @@ function updateHud(): void {
   $("level").textContent = String(game.level);
   $("pellets").textContent = String(game.foodLeft);
   $("tps").textContent = String(tickTimes.length);
-  $("who").textContent = config.mode === "ai" ? `${modelName()} · ${config.encoder}` : "keyboard";
+  const holding = config.mode === "ai" && config.waitForModel && shouldHold(game, agent.pending);
+  $("who").textContent = config.mode === "ai" ? `${modelName()} · ${config.encoder}${holding ? " · waiting for the model" : ""}` : "keyboard";
 
   const recent = records.slice(-100);
   const lat = recent.map((r) => r.latencyMs);
@@ -289,6 +297,12 @@ canvas.addEventListener("touchend", (e) => {
   else queue({ intent: d });
 }, { passive: true });
 
+function setWaitForModel(value: boolean): void {
+  config.waitForModel = value;
+  agent.waitForModel = value;
+  $<HTMLInputElement>("wait").checked = value;
+}
+
 function togglePause(): void {
   paused = !paused;
   $("pause").textContent = paused ? "Resume" : "Pause";
@@ -324,6 +338,9 @@ function setupControls(): void {
     config.encoder = encoder.value;
     syncAgent();
   };
+  const wait = $<HTMLInputElement>("wait");
+  wait.checked = config.waitForModel;
+  wait.onchange = () => setWaitForModel(wait.checked);
   speed.onchange = () => {
     config.speed = Number(speed.value);
     game.options.speed = config.speed;
@@ -382,7 +399,7 @@ if (statusBridge) {
       pelletsLeft: game.foodLeft, decisions: records.length, stale: records.filter((r) => r.stale).length,
       latencyP50: median(recent.map((r) => r.latencyMs)),
       tokensP50: median(recent.flatMap((r) => (r.inputTokens ? [r.inputTokens] : []))),
-      ticksPerSecond: tickTimes.length, mode: config.mode, model: config.model, modelName: modelName(), paused,
+      ticksPerSecond: tickTimes.length, mode: config.mode, model: config.model, modelName: modelName(), paused, waitForModel: config.waitForModel,
       window: { seconds: 2, ...frameStats, maxGapMs: Math.round(frameStats.maxGapMs), droppedMs: Math.round(frameStats.droppedMs) },
       audio: audio.state, muted: audio.muted,
     });
@@ -409,6 +426,9 @@ requestAnimationFrame(frame);
   },
   setPaused(value: boolean) {
     if (paused !== value) togglePause();
+  },
+  setWaitForModel(value: boolean) {
+    setWaitForModel(value);
   },
   setSpeed(value: number) {
     config.speed = value;

@@ -39,7 +39,7 @@ final class WebViewHolder {
         webView?.evaluateJavaScript("window.__pacman && window.__pacman.setModel('\(player.rawValue)')")
     }
 
-    /// decisionpacman://control?model=finetuned|phi4-mini|jev&mode=ai|human&paused=0|1&speed=<x>&restart=1
+    /// decisionpacman://control?model=finetuned|phi4-mini|jev&mode=ai|human&paused=0|1&speed=<x>&wait=0|1&restart=1
     /// switches the player and calls the page's control functions.
     func handle(url: URL) {
         guard url.scheme == "decisionpacman", url.host == "control",
@@ -52,6 +52,7 @@ final class WebViewHolder {
             case "mode" where value == "ai" || value == "human": js = "window.__pacman.setMode('\(value)')"
             case "paused": js = "window.__pacman.setPaused(\(value == "1"))"
             case "speed": if let x = Double(value), x > 0, x <= 2 { js = "window.__pacman.setSpeed(\(x))" }
+            case "wait": js = "window.__pacman.setWaitForModel(\(value == "1"))"
             case "restart" where value == "1": js = "window.__pacman.restart()"
             default: break
             }
