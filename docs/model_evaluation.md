@@ -8,6 +8,7 @@ This document records how we chose the in-game model, the fine-tuning target, an
 - **Fine-tuning target: a 0.8B model.** `tev1:0.8b` answers in about 65 ms, which is close to real time, but scores 0.40 on the probe, which is near chance. Fast and weak is the case where fine-tuning has the most to show.
 - **Labels: a search oracle, not an LLM.** An agent that rolls the game engine forward 5 seconds for each option survived every 5-minute evaluation game and averaged 1,109 pellets, at 5 ms of local CPU per decision. Qwen3.8-27B looked strong on the synthetic probe (0.97), but as a player it lost all three lives within 39 to 93 seconds in 5-minute games.
 - **Fine-tuning works.** A 0.8B model fine-tuned on 31,585 oracle-labeled states (`pacman-0.8b`) averaged 456 pellets and 94 s per game at 63 ms per decision. That is 6.6 times off-the-shelf `tev1:0.8b` at the same speed, 3 times `tev1:4b`, and more than twice the scripted greedy rule. The oracle it learned from still averages 1,109.
+- **The specialization is not free.** On 194 public JevBench decisions that are not Pac-Man (support routing, intent, policy checks, severity), `pacman-0.8b` scored 0.49 against 0.66 for `tev1:0.8b` and 0.81 for `tev1:4b`, with chance at 0.32. It loses most on the easy and standard tiers, where `tev1:0.8b` is competent, and its probabilities there stay close to uniform. On the hard tier both 0.8B models are near chance.
 - **Hosted Jev sits between `tev1:4b` and the greedy rule.** Through TypeSafe's API, Jev 1.13.0 averaged 178 pellets and 52 s per game at 115 ms per decision, and agreed with the oracle on 39.9% of held-out states. The fine-tuned 0.8B model beats it on both.
 - **An ordinary small chat model plays as well as Jev.** Given the same facts, a JSON schema restricted to the legal options, and thinking off, stock `phi4-mini` averaged 232 pellets at 187 ms per decision, `gemma4:e4b` 230, and `qwen3.5:4b` 197, against Jev's 178, all in real time with no failed answers. All three also agreed with the oracle more often than Jev (44-45% against 39.9%).
 - **A general LLM with lookahead beats the search oracle.** Qwen3.8-27B, shown one 5-second simulated future per option, averaged 1,396 pellets and reached level 6 in all 10 games, against 1,109 for `oracle-5s`, which scores the same rollouts with a hand-written formula. Without the lookahead, thinking took Qwen from 301 to 531 pellets, but it still lost all its lives within about two minutes.
@@ -269,6 +270,44 @@ Observations:
 - The plain models are slower than Jev, not faster. A chat answer generates about six tokens (`{"move": "left"}`) after reading about 300 input tokens, which takes 190-270 ms locally against Jev's 115 ms over the network. The realtime clock therefore handicaps them. `qwen3.5:4b` is the slowest of the three and has the highest stale rate (9%).
 - Probabilities are available from logprobs for `qwen3.5:4b` and `phi4-mini` (median confidence 0.76 and 0.77). Ollama 0.35.0 returns logprobs only for the first generated token of `gemma4:e4b`, so it has none. The chat probabilities are more overconfident than the System One ones: cross-entropy against the oracle's soft target is 1.67-1.72, against 1.29-1.41. They are fine for the probability bars, not as calibrated scores.
 - What this shows: on this task, given the same facts, Jev has no advantage that a stock 4B chat model with constrained JSON output lacks. It does not test Jev's other selling points, such as several questions per request or calibration on other tasks. It also says something about the task: every player that reads only the features encoder, scripted, decision model, or chat model, lands between 148 and 232 pellets, while the fine-tuned 0.8B model reaches 456 from the same facts.
+
+### 15. What specialization cost
+
+`pacman-0.8b` plays far better than `tev1:0.8b`. This experiment measures the other side: how much worse it is at decisions that are not Pac-Man.
+
+**Evaluation set.** The public items of [JevBench](https://github.com/fstandhartinger/jevbench) (MIT), a third-party benchmark for decision models in the same `/v1/systemone` format, at commit `bb05a33`. They are labeled short decisions about refund policies, support messages, tool requests, incident severity, and similar text, posed as yes/no (`noul`), pick-one (`choice`), and ordinal (`score`) questions with 2-6 options. JevBench groups them into three tiers: easy (48 items), standard (72), and hard (111, written to contain traps and multi-step reasoning). The models in Ollama were loaded with a 2,050-token context, so items longer than 4,000 characters were skipped: 37 hard items, leaving 194. `scripts/eval_general_decisions.py` downloads the files, checks their hashes, and sends each item once with JevBench's own question. Each item is scored by argmax, as JevBench does, and by the probability the model gave the correct option. Ollama turns all three question types into the same lettered-choice prompt that `pacman-0.8b` was trained on, so the format itself is not new to it.
+
+**Results.** Accuracy, with the probability on the correct option in parentheses. Chance is the mean of 1 / options per item. Latency is p50 on this set (largest prompt 1,381 tokens).
+
+| Model | Easy (48) | Standard (72) | Hard (74) | All (194) | Latency p50 |
+|---|---|---|---|---|---|
+| chance | 0.28 | 0.31 | 0.36 | 0.32 | - |
+| `tev1:4b` | 1.00 (1.00) | 0.94 (0.88) | 0.57 (0.55) | 0.81 (0.79) | 196 ms |
+| `tev1:0.8b` | 1.00 (0.96) | 0.69 (0.66) | 0.41 (0.38) | 0.66 (0.63) | 68 ms |
+| **`pacman-0.8b`** | 0.79 (0.37) | 0.39 (0.34) | 0.39 (0.37) | 0.49 (0.36) | 69 ms |
+| Jev 1.13.0 (JevBench's published run) | 1.00 | 0.99 | 0.73 | 0.89 | - |
+
+Accuracy above chance, as a share of the room above chance ((accuracy - chance) / (1 - chance)), is 0.73 for `tev1:4b`, 0.50 for `tev1:0.8b`, and 0.24 for `pacman-0.8b` over all 194 items. The Jev row is computed from JevBench's published per-item outcomes (v1.2) on the same 194 items, not measured here.
+
+On the 40-scenario Pac-Man probe (section 4), rerun on the same day, the order reverses:
+
+| Model | Probe accuracy | Probability on the correct move | Mean top probability |
+|---|---|---|---|
+| `tev1:4b` | 0.88 | 0.64 | 0.69 |
+| `tev1:0.8b` | 0.42 | 0.40 | 0.54 |
+| **`pacman-0.8b`** | **0.93** | 0.52 | 0.52 |
+
+**Where the loss is.**
+
+- Paired with `tev1:0.8b` item by item, `pacman-0.8b` gets 48 items wrong that `tev1:0.8b` gets right and 15 right that it gets wrong. On easy items the count is 10 lost and none gained; on standard items, 26 lost and 4 gained.
+- On the standard tier `pacman-0.8b` is near chance in every family: intent 0.25, routing 0.33, ordinal 0.33, policy 0.42, extraction 0.50, against 0.58-1.00 for `tev1:0.8b`. The exception is judging whether an answer is adequate, where it scores 0.50 against 0.33. On easy items it still picks the right tool on 12 of 12 and the right intent on 7 of 12.
+- The hard tier does not separate the two 0.8B models. Both are within a few points of chance (0.41 and 0.39), so specialization had little to lose there. Only `tev1:4b` is clearly above chance on it.
+- `pacman-0.8b`'s answers lean toward the first two options. Options A or B are correct on 120 of the 194 items, and it picked A or B on 166. On yes/no items it said yes 85% of the time, against 47% in the labels and 66% for `tev1:0.8b`.
+- Its probabilities stay close to uniform. When it is right on easy items, it is right by a small margin: 0.79 accuracy with 0.37 on the correct option. `tev1:0.8b` puts 0.96 there. Part of this is how it was trained: the oracle's soft targets spread probability over near-equal moves, so even on the Pac-Man probe its top option averages only 0.52. Out of domain the spread is larger still, and its probabilities are not useful as confidence.
+
+**What the comparison does and does not show.** `pacman-0.8b` was not made by further training `tev1:0.8b`. It is a LoRA on the Qwen3.5-0.8B base, because Tev1's 0.8B weights have only been seen as Ollama GGUF. Tev1 is itself a LoRA on Qwen3.5. The two models are best read as two adapters on the same family of base model: one trained on general decisions, one only on Pac-Man. The gap above is therefore the general decision training `pacman-0.8b` never received, together with anything the Pac-Man training took from the base model. The base model is not served in Ollama here, so the two parts are not separated. Its remaining skill on easy items probably comes from the base model, which is not tested. Other limits: the set is small (12 items per family), it was run once (answers are deterministic), and it excludes the longest hard items.
+
+The practical reading is that `pacman-0.8b` replaces a general decision model rather than extending one. It is the better choice when the model only ever plays this game, and the worse one when the same model must also route tickets or check policies. Keeping both would mean serving two adapters, or training the Pac-Man data together with general decisions, which was not tried.
 
 ## Conclusions
 
