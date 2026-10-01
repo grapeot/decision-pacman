@@ -182,6 +182,12 @@
 - `docs/model_evaluation.md` stays the lab notebook with unchanged section numbers, plus a pointer to `results.md`.
 - Fixed stale paths and commands: `src/oracle/` and `src/ui/` in AGENTS.md (the oracle is `src/agent/oracle.ts`), and the headless command in `docs/test.md` (`--policy`, not `--model`). No code changes.
 
+### 2026-10-01 (smaller chat models for the phone)
+
+- Screened small plain chat models in lockstep (features input, seeds 100-109, 10 games) before stopping the search: `qwen3.5:0.8b` 35 pellets, `gemma3:1b` 45, `llama3.2:1b` 117, `qwen3:1.7b` 121, against Jev 161 in lockstep. None of the 1B-class models reached Jev.
+- Tried qwen3.5 4B as a fourth iPhone player (Qwen3.5 chat template with thinking off, matched to Ollama's `think: false` rendering on 12 states). On the iPhone 16 Pro Max with Wait on it took 2.75-2.9 s per decision after a 3.4 s load, about the same as phi4-mini (3.0-3.2 s in the same session, thermal state `serious`). The app keeps three players: the distilled 0.8B, phi4-mini, and Jev.
+- Ollama's `qwen3.5:4b` blob does not load in the app's llama.cpp (`qwen35.rope.dimension_sections has wrong array length; expected 4, got 3`); a standard GGUF such as unsloth's `Qwen3.5-4B-Q4_K_M.gguf` does.
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.
