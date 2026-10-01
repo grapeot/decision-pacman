@@ -232,6 +232,9 @@ Thinking alone helps (301 to 531 pellets) but costs about 9 times the latency, a
 3. Label training data with `oracle-5s`. It is far stronger than any model we tried and costs milliseconds of local CPU per label. It also scores every option, so labels can be soft: ties become visible instead of being broken arbitrarily. Keep Qwen3.8-27B only as a comparison point.
 4. Mind the information gap. The oracle sees the full game state, and the student sees only its encoding. Decisions that depend on facts the encoding drops cannot be learned from it. Measure the student against the oracle on held-out states to see how large this gap is.
 5. Invest in the encoder before the model. Keep states compact and factual, and measure every encoder change in tokens as well as accuracy.
+6. Compare clocks before comparing players. All Qwen results are lockstep, where the game waits for each answer; Jev, the Tev1 models, and `pacman-0.8b` are realtime, where slow answers arrive after the junction has passed. Qwen without thinking (301 pellets) beating Jev (178) does not yet show it would at realtime.
+7. Do not argue cost against Jev. At the price seen on Vercel AI Gateway ($0.042 per million input tokens), a whole game of about 340 decisions at 605 tokens each costs under a cent. The case for a fine-tuned local model is task accuracy, latency, offline use, and control. The cost case holds against calling a large general model at every step.
+8. A stronger teacher may not make a stronger student. The student's ceiling is set by what it sees at inference time. Qwen with lookahead beats the oracle by reading rollouts the features-only student never sees, so relabeling with it may leave the student near its current plateau. A student given the same lookahead facts would test this; the rollouts take milliseconds of CPU.
 
 ## Possible follow-ups (not planned)
 
