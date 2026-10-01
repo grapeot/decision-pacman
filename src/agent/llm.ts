@@ -27,6 +27,31 @@ export function moveSchema(keys: string[]): object {
   };
 }
 
+/**
+ * The GBNF grammar equivalent of `moveSchema` for llama.cpp's grammar sampler, in the shape llama.cpp's
+ * json-schema-to-grammar gives for it: optional whitespace around the tokens, the move as a JSON string
+ * from the options. Used on device, where there is no Ollama to translate the schema.
+ */
+export function moveGrammar(keys: string[]): string {
+  const values = keys.map((k) => `"\\"${k}\\""`).join(" | ");
+  return [
+    'root ::= "{" space move-kv "}" space',
+    'move-kv ::= "\\"move\\"" space ":" space move',
+    `move ::= (${values}) space`,
+    'space ::= | " " | "\\n"{1,2} [ \\t]{0,20}',
+  ].join("\n");
+}
+
+/** One user message in phi4-mini's chat template, exactly as Ollama renders it (no system prompt), ending where the reply starts. */
+export function phi4MiniPrompt(user: string): string {
+  return `<|user|>${user}<|end|><|assistant|>`;
+}
+
+/** The full on-device prompt for a plain chat model: the same text `buildChatRequest` sends, in phi4-mini's template. */
+export function renderChatDecision(enc: EncodedDecision): string {
+  return phi4MiniPrompt(teacherPrompt(enc, undefined, LLM_ANSWER));
+}
+
 export function buildChatRequest(cfg: LlmConfig, enc: EncodedDecision): object {
   return {
     model: cfg.model,

@@ -1,0 +1,740 @@
+[
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":3,\"pellets_left\":244,\"to_junction\":1.5,\"options\":{\"up\":{\"ghost\":null,\"pellets\":5,\"food\":1.5,\"power\":18.5},\"left\":{\"ghost\":null,\"pellets\":6,\"food\":1.5,\"power\":18.5},\"back\":{\"ghost\":null,\"pellets\":10,\"food\":1.5,\"power\":18.5}}}\n\nOptions:\n- up\n- left\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"left\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "left",
+   "back"
+  ],
+  "reference": {
+   "choice": "up",
+   "probabilities": [
+    0.9822882906949945,
+    0.007625005072511158,
+    0.010086704232494347
+   ],
+   "inputTokens": 282
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":2,\"pellets_left\":162,\"to_junction\":3.7,\"frightened_seconds_left\":5.8,\"options\":{\"left\":{\"ghost\":null,\"pellets\":6,\"food\":0.7,\"edible\":null},\"right\":{\"ghost\":null,\"pellets\":6,\"food\":0.7,\"edible\":null},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":13.3,\"edible\":null}}}\n\nOptions:\n- left\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"left\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "left",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "left",
+   "probabilities": [
+    0.583757901132098,
+    0.24382967469107725,
+    0.17241242417682476
+   ],
+   "inputTokens": 289
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":1,\"pellets_left\":103,\"to_junction\":2.8,\"options\":{\"up\":{\"ghost\":7.8,\"pellets\":6,\"food\":0.8,\"ghost_coming\":true,\"power\":12.8},\"right\":{\"ghost\":null,\"pellets\":6,\"food\":0.8,\"power\":12.8},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":10.2,\"power\":17.2}}}\n\nOptions:\n- up\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "up",
+   "probabilities": [
+    0.6410542142575324,
+    0.20010719470960664,
+    0.15883859103286097
+   ],
+   "inputTokens": 290
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":3,\"pellets_left\":199,\"to_junction\":4.7,\"frightened_seconds_left\":2.6,\"options\":{\"up\":{\"ghost\":6.7,\"pellets\":0,\"food\":7.7,\"ghost_coming\":false,\"edible\":null},\"right\":{\"ghost\":null,\"pellets\":0,\"food\":10.7,\"edible\":null},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":7.3,\"edible\":null,\"power\":18.3}}}\n\nOptions:\n- up\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "back",
+   "probabilities": [
+    0.05228174042512149,
+    0.05265421699639232,
+    0.8950640425784862
+   ],
+   "inputTokens": 303
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":3,\"pellets_left\":126,\"to_junction\":10.8,\"options\":{\"left\":{\"ghost\":null,\"pellets\":6,\"food\":0.8},\"right\":{\"ghost\":null,\"pellets\":6,\"food\":0.8},\"back\":{\"ghost\":13.2,\"pellets\":4,\"food\":2.2,\"ghost_coming\":false,\"power\":24.2}}}\n\nOptions:\n- left\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"left\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "left",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "left",
+   "probabilities": [
+    0.5777508653136985,
+    0.29462285818832246,
+    0.1276262764979791
+   ],
+   "inputTokens": 278
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":2,\"pellets_left\":52,\"to_junction\":6.2,\"options\":{\"left\":{\"ghost\":null,\"pellets\":5,\"food\":1.2,\"power\":1.2},\"right\":{\"ghost\":9.2,\"pellets\":5,\"food\":1.2,\"ghost_coming\":false,\"power\":1.2},\"back\":{\"ghost\":11.8,\"pellets\":0,\"food\":10.8,\"ghost_coming\":true,\"power\":20.8}}}\n\nOptions:\n- left\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"left\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "left",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "left",
+   "probabilities": [
+    0.7174418466823097,
+    0.14431093119559804,
+    0.13824722212209223
+   ],
+   "inputTokens": 298
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":1,\"pellets_left\":24,\"to_junction\":6.5,\"options\":{\"up\":{\"ghost\":null,\"pellets\":4,\"food\":2.5},\"down\":{\"ghost\":null,\"pellets\":4,\"food\":2.5},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":10.5}}}\n\nOptions:\n- up\n- down\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"down\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "down",
+   "back"
+  ],
+  "reference": {
+   "choice": "up",
+   "probabilities": [
+    0.9429038580892489,
+    0.043374821431502286,
+    0.013721320479248709
+   ],
+   "inputTokens": 264
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":3,\"pellets_left\":199,\"to_junction\":3.3,\"frightened_seconds_left\":4.3,\"options\":{\"down\":{\"ghost\":null,\"pellets\":5,\"food\":1.3,\"edible\":null},\"right\":{\"ghost\":null,\"pellets\":5,\"food\":1.3,\"edible\":null,\"power\":22.3},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":11.7,\"edible\":13.7,\"power\":22.7}}}\n\nOptions:\n- down\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"down\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "down",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "down",
+   "probabilities": [
+    0.6168834981864314,
+    0.3278318930561546,
+    0.05528460875741391
+   ],
+   "inputTokens": 303
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":3,\"pellets_left\":129,\"to_junction\":5.2,\"frightened_seconds_left\":1.1,\"options\":{\"up\":{\"ghost\":null,\"pellets\":0,\"food\":12.2,\"edible\":10.2,\"power\":21.2},\"left\":{\"ghost\":null,\"pellets\":0,\"food\":14.2,\"edible\":null},\"right\":{\"ghost\":null,\"pellets\":0,\"food\":25.2,\"edible\":null},\"back\":{\"ghost\":null,\"pellets\":7,\"food\":1.8,\"edible\":null}}}\n\nOptions:\n- up\n- left\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"left\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "left",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "back",
+   "probabilities": [
+    0.034395544264448547,
+    0.011443756833039815,
+    0.161044661258849,
+    0.7931160376436626
+   ],
+   "inputTokens": 322
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":2,\"pellets_left\":65,\"to_junction\":10.4,\"frightened_seconds_left\":2.5,\"options\":{\"up\":{\"ghost\":null,\"pellets\":5,\"food\":1.4,\"edible\":null},\"right\":{\"ghost\":null,\"pellets\":5,\"food\":1.4,\"edible\":null},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":24.6,\"edible\":null}}}\n\nOptions:\n- up\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "up",
+   "probabilities": [
+    0.9486336895838867,
+    0.03162781403445063,
+    0.019738496381662668
+   ],
+   "inputTokens": 289
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":1,\"pellets_left\":39,\"to_junction\":2.3,\"options\":{\"up\":{\"ghost\":null,\"pellets\":0,\"food\":7.3},\"left\":{\"ghost\":null,\"pellets\":3,\"food\":3.3},\"right\":{\"ghost\":null,\"pellets\":0,\"food\":12.3,\"power\":24.3},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":9.7}}}\n\nOptions:\n- up\n- left\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"left\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "left",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "right",
+   "probabilities": [
+    0.15373312889075366,
+    0.10061970197817097,
+    0.7310510380382957,
+    0.014596131092779668
+   ],
+   "inputTokens": 290
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":1,\"pellets_left\":11,\"to_junction\":2.3,\"frightened_seconds_left\":4.7,\"options\":{\"down\":{\"ghost\":null,\"pellets\":0,\"food\":31.3,\"edible\":2.3},\"right\":{\"ghost\":null,\"pellets\":3,\"food\":3.3,\"edible\":2.3},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":6.7,\"edible\":10.7}}}\n\nOptions:\n- down\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"down\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "down",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "down",
+   "probabilities": [
+    0.4616584673625786,
+    0.4489422032538098,
+    0.0893993293836116
+   ],
+   "inputTokens": 295
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":3,\"pellets_left\":199,\"to_junction\":2.8,\"frightened_seconds_left\":4.3,\"options\":{\"up\":{\"ghost\":null,\"pellets\":0,\"food\":7.8,\"edible\":null},\"left\":{\"ghost\":null,\"pellets\":3,\"food\":3.8,\"edible\":null},\"right\":{\"ghost\":null,\"pellets\":3,\"food\":3.8,\"edible\":10.8,\"power\":24.8},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":9.2,\"edible\":null,\"power\":20.2}}}\n\nOptions:\n- up\n- left\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"left\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "left",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "right",
+   "probabilities": [
+    0.014961489348702173,
+    0.04115976694090436,
+    0.9201950233181386,
+    0.023683720392254873
+   ],
+   "inputTokens": 328
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":2,\"pellets_left\":132,\"to_junction\":12.9,\"frightened_seconds_left\":5,\"options\":{\"up\":{\"ghost\":null,\"pellets\":6,\"food\":0.9,\"edible\":null},\"right\":{\"ghost\":null,\"pellets\":6,\"food\":0.9,\"edible\":null},\"back\":{\"ghost\":null,\"pellets\":2,\"food\":4.1,\"edible\":null}}}\n\nOptions:\n- up\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "up",
+   "probabilities": [
+    0.774428228820841,
+    0.15781672241539407,
+    0.06775504876376492
+   ],
+   "inputTokens": 287
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":1,\"pellets_left\":68,\"to_junction\":5.3,\"options\":{\"left\":{\"ghost\":null,\"pellets\":0,\"food\":19.3},\"right\":{\"ghost\":6.3,\"pellets\":0,\"food\":6.3,\"ghost_coming\":false,\"power\":12.3},\"back\":{\"ghost\":null,\"pellets\":4,\"food\":2.7,\"power\":11.7}}}\n\nOptions:\n- left\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"left\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "left",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "right",
+   "probabilities": [
+    0.06271393999202378,
+    0.7701219194329195,
+    0.16716414057505677
+   ],
+   "inputTokens": 284
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":1,\"pellets_left\":34,\"to_junction\":14.1,\"options\":{\"up\":{\"ghost\":14.1,\"pellets\":5,\"food\":1.1,\"ghost_coming\":true,\"power\":6.1},\"left\":{\"ghost\":14.1,\"pellets\":5,\"food\":1.1,\"ghost_coming\":true,\"power\":6.1},\"down\":{\"ghost\":14.1,\"pellets\":5,\"food\":1.1,\"ghost_coming\":true,\"power\":6.1},\"back\":{\"ghost\":7.9,\"pellets\":1,\"food\":5.9,\"ghost_coming\":false,\"power\":15.9}}}\n\nOptions:\n- up\n- left\n- down\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"left\\\"\" | \"\\\"down\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "left",
+   "down",
+   "back"
+  ],
+  "reference": {
+   "choice": "back",
+   "probabilities": [
+    0.1409312783041278,
+    0.011576949524120429,
+    0.09061278248665153,
+    0.7568789896851003
+   ],
+   "inputTokens": 340
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":3,\"pellets_left\":185,\"to_junction\":3,\"frightened_seconds_left\":2.2,\"options\":{\"left\":{\"ghost\":null,\"pellets\":0,\"food\":10,\"edible\":13},\"right\":{\"ghost\":null,\"pellets\":3,\"food\":4,\"edible\":null,\"power\":19},\"back\":{\"ghost\":null,\"pellets\":3,\"food\":3,\"edible\":7}}}\n\nOptions:\n- left\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"left\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "left",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "right",
+   "probabilities": [
+    0.011413790951192075,
+    0.9691831354260307,
+    0.019403073622777278
+   ],
+   "inputTokens": 285
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":3,\"pellets_left\":104,\"to_junction\":4.2,\"options\":{\"up\":{\"ghost\":null,\"pellets\":5,\"food\":1.2},\"left\":{\"ghost\":null,\"pellets\":5,\"food\":1.2},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":23.8}}}\n\nOptions:\n- up\n- left\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"left\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "left",
+   "back"
+  ],
+  "reference": {
+   "choice": "up",
+   "probabilities": [
+    0.9812700316210932,
+    0.00570609685301627,
+    0.013023871525890678
+   ],
+   "inputTokens": 264
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":2,\"pellets_left\":44,\"to_junction\":5.6,\"options\":{\"up\":{\"ghost\":null,\"pellets\":0,\"food\":33.6},\"right\":{\"ghost\":null,\"pellets\":0,\"food\":6.6},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":29.4}}}\n\nOptions:\n- up\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "right",
+   "probabilities": [
+    0.17125775827540374,
+    0.7195218939120265,
+    0.10922034781256981
+   ],
+   "inputTokens": 264
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":1,\"pellets_left\":36,\"to_junction\":10.2,\"options\":{\"left\":{\"ghost\":null,\"pellets\":5,\"food\":1.2},\"right\":{\"ghost\":null,\"pellets\":5,\"food\":1.2},\"back\":{\"ghost\":12.8,\"pellets\":0,\"food\":11.8,\"ghost_coming\":false,\"power\":18.8}}}\n\nOptions:\n- left\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"left\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "left",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "left",
+   "probabilities": [
+    0.704587684521881,
+    0.13221148006200775,
+    0.16320083541611127
+   ],
+   "inputTokens": 278
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":3,\"pellets_left\":178,\"to_junction\":6.1,\"frightened_seconds_left\":4,\"options\":{\"left\":{\"ghost\":null,\"pellets\":5,\"food\":1.1,\"edible\":null},\"right\":{\"ghost\":null,\"pellets\":5,\"food\":1.1,\"edible\":null},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":9.9,\"edible\":null}}}\n\nOptions:\n- left\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"left\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "left",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "left",
+   "probabilities": [
+    0.6180462862407324,
+    0.1706746364200272,
+    0.21127907733924028
+   ],
+   "inputTokens": 287
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":3,\"pellets_left\":97,\"to_junction\":4.5,\"options\":{\"up\":{\"ghost\":null,\"pellets\":4,\"food\":0.5},\"right\":{\"ghost\":null,\"pellets\":4,\"food\":0.5},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":16.5}}}\n\nOptions:\n- up\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "up",
+   "probabilities": [
+    0.970709603022861,
+    0.01782755855376069,
+    0.011462838423378266
+   ],
+   "inputTokens": 264
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":2,\"pellets_left\":58,\"to_junction\":4.1,\"options\":{\"left\":{\"ghost\":null,\"pellets\":0,\"food\":17.1},\"right\":{\"ghost\":null,\"pellets\":0,\"food\":8.1,\"power\":24.1},\"back\":{\"ghost\":3.9,\"pellets\":0,\"food\":17.9,\"ghost_coming\":true}}}\n\nOptions:\n- left\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"left\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "left",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "right",
+   "probabilities": [
+    0.0971706844066925,
+    0.8548635827448787,
+    0.04796573284842875
+   ],
+   "inputTokens": 278
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":2,\"pellets_left\":4,\"to_junction\":0,\"options\":{\"up\":{\"ghost\":null,\"pellets\":0,\"food\":15},\"left\":{\"ghost\":null,\"pellets\":0,\"food\":28},\"right\":{\"ghost\":13,\"pellets\":2,\"food\":4,\"ghost_coming\":true}}}\n\nOptions:\n- up\n- left\n- right\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"left\\\"\" | \"\\\"right\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "left",
+   "right"
+  ],
+  "reference": {
+   "choice": "right",
+   "probabilities": [
+    0.007566978512574378,
+    0.01715861466866608,
+    0.9752744068187595
+   ],
+   "inputTokens": 258
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":1,\"pellets_left\":237,\"to_junction\":3.4,\"options\":{\"up\":{\"ghost\":null,\"pellets\":0,\"food\":9.4,\"power\":23.4},\"right\":{\"ghost\":null,\"pellets\":0,\"food\":15.4},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":6.6,\"power\":22.6}}}\n\nOptions:\n- up\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "back",
+   "probabilities": [
+    0.24487557220748665,
+    0.03024534949984574,
+    0.7248790782926676
+   ],
+   "inputTokens": 276
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":2,\"pellets_left\":180,\"to_junction\":3.9,\"frightened_seconds_left\":5.8,\"options\":{\"left\":{\"ghost\":null,\"pellets\":6,\"food\":0.9,\"edible\":null},\"right\":{\"ghost\":null,\"pellets\":6,\"food\":0.9,\"edible\":null},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":13.1,\"edible\":null}}}\n\nOptions:\n- left\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"left\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "left",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "left",
+   "probabilities": [
+    0.5876625741397545,
+    0.20041402523880675,
+    0.21192340062143872
+   ],
+   "inputTokens": 289
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":2,\"pellets_left\":109,\"to_junction\":5.2,\"frightened_seconds_left\":0.1,\"options\":{\"down\":{\"ghost\":null,\"pellets\":5,\"food\":1.2,\"edible\":null},\"right\":{\"ghost\":null,\"pellets\":5,\"food\":1.2,\"edible\":null,\"power\":15.2},\"back\":{\"ghost\":null,\"pellets\":4,\"food\":2.8,\"edible\":7.8,\"power\":8.8}}}\n\nOptions:\n- down\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"down\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "down",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "down",
+   "probabilities": [
+    0.6266693589444349,
+    0.3103824549066294,
+    0.0629481861489358
+   ],
+   "inputTokens": 303
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":1,\"pellets_left\":31,\"to_junction\":5.9,\"options\":{\"up\":{\"ghost\":null,\"pellets\":0,\"food\":12.9,\"power\":21.9},\"left\":{\"ghost\":null,\"pellets\":0,\"food\":17.9},\"right\":{\"ghost\":null,\"pellets\":0,\"food\":33.9},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":18.1}}}\n\nOptions:\n- up\n- left\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"left\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "left",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "up",
+   "probabilities": [
+    0.7848097509376036,
+    0.019496588835243432,
+    0.0890008066387723,
+    0.10669285358838065
+   ],
+   "inputTokens": 290
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":2,\"pellets_left\":181,\"to_junction\":5.6,\"frightened_seconds_left\":5,\"options\":{\"up\":{\"ghost\":null,\"pellets\":3,\"food\":0.6,\"edible\":12.6},\"right\":{\"ghost\":null,\"pellets\":3,\"food\":0.6,\"edible\":null},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":7.4,\"edible\":13.4}}}\n\nOptions:\n- up\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "up",
+   "probabilities": [
+    0.9549843430613469,
+    0.01591557144700103,
+    0.029100085491652102
+   ],
+   "inputTokens": 291
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":2,\"pellets_left\":124,\"to_junction\":5.7,\"options\":{\"up\":{\"ghost\":8.7,\"pellets\":0,\"food\":9.7,\"ghost_coming\":false},\"down\":{\"ghost\":12.7,\"pellets\":0,\"food\":18.7,\"ghost_coming\":false},\"back\":{\"ghost\":7.3,\"pellets\":0,\"food\":8.3,\"ghost_coming\":true}}}\n\nOptions:\n- up\n- down\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"down\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "down",
+   "back"
+  ],
+  "reference": {
+   "choice": "up",
+   "probabilities": [
+    0.5005197445960828,
+    0.2178989884606394,
+    0.28158126694327773
+   ],
+   "inputTokens": 288
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":3,\"pellets_left\":228,\"to_junction\":6.5,\"options\":{\"up\":{\"ghost\":10.5,\"pellets\":5,\"food\":1.5,\"ghost_coming\":true,\"power\":16.5},\"left\":{\"ghost\":null,\"pellets\":5,\"food\":1.5,\"power\":16.5},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":6.5,\"power\":13.5}}}\n\nOptions:\n- up\n- left\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"left\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "left",
+   "back"
+  ],
+  "reference": {
+   "choice": "up",
+   "probabilities": [
+    0.6460313090691181,
+    0.18520975374067933,
+    0.16875893719020257
+   ],
+   "inputTokens": 290
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":3,\"pellets_left\":139,\"to_junction\":7.5,\"frightened_seconds_left\":5.9,\"options\":{\"up\":{\"ghost\":null,\"pellets\":5,\"food\":1.5,\"edible\":null},\"left\":{\"ghost\":null,\"pellets\":5,\"food\":1.5,\"edible\":11.5},\"down\":{\"ghost\":null,\"pellets\":5,\"food\":1.5,\"edible\":11.5},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":6.5,\"edible\":12.5}}}\n\nOptions:\n- up\n- left\n- down\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"left\\\"\" | \"\\\"down\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "left",
+   "down",
+   "back"
+  ],
+  "reference": {
+   "choice": "up",
+   "probabilities": [
+    0.9021646450260021,
+    0.006479205682354462,
+    0.0799581236954068,
+    0.011398025596236616
+   ],
+   "inputTokens": 320
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":2,\"pellets_left\":85,\"to_junction\":1.5,\"options\":{\"up\":{\"ghost\":null,\"pellets\":0,\"food\":11.5,\"power\":18.5},\"left\":{\"ghost\":null,\"pellets\":2,\"food\":2.5,\"power\":18.5},\"back\":{\"ghost\":null,\"pellets\":1,\"food\":5.5}}}\n\nOptions:\n- up\n- left\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"left\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "left",
+   "back"
+  ],
+  "reference": {
+   "choice": "left",
+   "probabilities": [
+    0.22510191710650562,
+    0.5849690327242012,
+    0.1899290501692932
+   ],
+   "inputTokens": 276
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":2,\"pellets_left\":44,\"to_junction\":2.6,\"options\":{\"left\":{\"ghost\":5.6,\"pellets\":0,\"food\":16.6,\"ghost_coming\":true,\"power\":22.6},\"right\":{\"ghost\":null,\"pellets\":2,\"food\":3.6,\"power\":12.6},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":22.4}}}\n\nOptions:\n- left\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"left\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "left",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "right",
+   "probabilities": [
+    0.00457540380087075,
+    0.9422537114789526,
+    0.05317088472017657
+   ],
+   "inputTokens": 284
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":1,\"pellets_left\":15,\"to_junction\":16.6,\"options\":{\"up\":{\"ghost\":null,\"pellets\":5,\"food\":1.6},\"right\":{\"ghost\":null,\"pellets\":5,\"food\":1.6},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":30.4}}}\n\nOptions:\n- up\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "up",
+   "probabilities": [
+    0.9318821932241491,
+    0.022195430865740804,
+    0.045922375910110044
+   ],
+   "inputTokens": 264
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":1,\"pellets_left\":163,\"to_junction\":6.2,\"options\":{\"left\":{\"ghost\":null,\"pellets\":5,\"food\":1.2},\"down\":{\"ghost\":null,\"pellets\":5,\"food\":1.2,\"power\":20.2},\"right\":{\"ghost\":null,\"pellets\":5,\"food\":1.2,\"power\":14.2},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":6.8,\"power\":15.8}}}\n\nOptions:\n- left\n- down\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"left\\\"\" | \"\\\"down\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "left",
+   "down",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "down",
+   "probabilities": [
+    0.11214111427970555,
+    0.6045226178067096,
+    0.2763106778596869,
+    0.007025590053897931
+   ],
+   "inputTokens": 302
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":3,\"pellets_left\":204,\"to_junction\":3,\"frightened_seconds_left\":5.5,\"options\":{\"up\":{\"ghost\":null,\"pellets\":2,\"food\":1,\"edible\":null},\"down\":{\"ghost\":null,\"pellets\":2,\"food\":1,\"edible\":null},\"right\":{\"ghost\":null,\"pellets\":4,\"food\":1,\"edible\":null},\"back\":{\"ghost\":null,\"pellets\":4,\"food\":3,\"edible\":null}}}\n\nOptions:\n- up\n- down\n- right\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"down\\\"\" | \"\\\"right\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "down",
+   "right",
+   "back"
+  ],
+  "reference": {
+   "choice": "right",
+   "probabilities": [
+    0.35689392223484073,
+    0.15949901595425325,
+    0.4522210386851653,
+    0.031386023125740674
+   ],
+   "inputTokens": 304
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":3,\"pellets_left\":126,\"to_junction\":7.5,\"frightened_seconds_left\":5.9,\"options\":{\"up\":{\"ghost\":null,\"pellets\":5,\"food\":1.5,\"edible\":13.5},\"left\":{\"ghost\":null,\"pellets\":5,\"food\":1.5,\"edible\":null},\"down\":{\"ghost\":null,\"pellets\":5,\"food\":1.5,\"edible\":null},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":6.5,\"edible\":null}}}\n\nOptions:\n- up\n- left\n- down\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"left\\\"\" | \"\\\"down\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "left",
+   "down",
+   "back"
+  ],
+  "reference": {
+   "choice": "up",
+   "probabilities": [
+    0.9814316102448719,
+    0.0005312416915938601,
+    0.014873211610411396,
+    0.003163936453122815
+   ],
+   "inputTokens": 316
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":3,\"pellets_left\":46,\"to_junction\":8.2,\"frightened_seconds_left\":1.9,\"options\":{\"up\":{\"ghost\":null,\"pellets\":5,\"food\":1.2,\"edible\":null},\"left\":{\"ghost\":null,\"pellets\":5,\"food\":1.2,\"edible\":null},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":17.8,\"edible\":null}}}\n\nOptions:\n- up\n- left\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"left\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "left",
+   "back"
+  ],
+  "reference": {
+   "choice": "up",
+   "probabilities": [
+    0.9640902131172767,
+    0.011190587883807794,
+    0.02471919899891557
+   ],
+   "inputTokens": 289
+  }
+ },
+ {
+  "prompt": "<|user|>You control Pac-Man in a maze. Choose which way to go at the next junction. Eating pellets scores points. Touching a normal ghost loses a life. After a power pellet, ghosts are frightened for a few seconds and can be eaten for bonus points. Each option lists facts about the path through that exit: ghost = steps to the nearest normal ghost (null if none within 15), ghost_coming = that ghost is moving toward you, edible = steps to the nearest frightened ghost, pellets = pellets within 6 steps, food = steps to the nearest pellet, power = steps to the nearest power pellet. Steps count from Pac-Man, including the corridor up to the junction. 'back' means turn around right now instead of going to the junction.\n\nState:\n{\"lives\":2,\"pellets_left\":30,\"to_junction\":3.9,\"options\":{\"up\":{\"ghost\":null,\"pellets\":0,\"food\":12.9},\"left\":{\"ghost\":null,\"pellets\":0,\"food\":13.9},\"back\":{\"ghost\":null,\"pellets\":0,\"food\":18.1}}}\n\nOptions:\n- up\n- left\n- back: turn around now\n\nAnswer with only a JSON object: {\"move\": \"<one of the options>\"}<|end|><|assistant|>",
+  "grammar": "root ::= \"{\" space move-kv \"}\" space\nmove-kv ::= \"\\\"move\\\"\" space \":\" space move\nmove ::= (\"\\\"up\\\"\" | \"\\\"left\\\"\" | \"\\\"back\\\"\") space\nspace ::= | \" \" | \"\\n\"{1,2} [ \\t]{0,20}",
+  "keys": [
+   "up",
+   "left",
+   "back"
+  ],
+  "reference": {
+   "choice": "up",
+   "probabilities": [
+    0.8670085914571486,
+    0.014033894632796782,
+    0.11895751391005448
+   ],
+   "inputTokens": 264
+  }
+ }
+]

@@ -2,7 +2,8 @@ import { AgentLoop, type DecisionRecord } from "./agent/loop.ts";
 import { DecisionApiError } from "./agent/client.ts";
 import { systemOnePolicy } from "./agent/policies.ts";
 import { llmPolicy } from "./agent/llm.ts";
-import { nativeBridge, nativePolicy } from "./agent/native.ts";
+import { nativeBridge, nativeChatPolicy, nativeJevPolicy, nativePolicy } from "./agent/native.ts";
+import { DEFAULT_PLAYER, isPlayerId, playerLabel, type PlayerId } from "./agent/players.ts";
 import { GameAudio } from "./audio/player.ts";
 import { findDecisionPoint } from "./engine/decision.ts";
 import { createGame, step, TPS } from "./engine/game.ts";
@@ -14,13 +15,17 @@ const params = new URLSearchParams(location.search);
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
 // ---- configuration -----------------------------------------------------------
-// Inside the iOS app, decisions go to the on-device model instead of an HTTP endpoint.
+// Inside the iOS app, decisions go through native bridges instead of an HTTP endpoint, and the model is
+// one of the app's players (see src/agent/players.ts), chosen by the app.
 const bridge = nativeBridge();
-const ON_DEVICE_MODEL = "pacman-0.8b (on device)";
 const defaultEndpoint = import.meta.env.DEV ? "/decide" : (import.meta.env.VITE_DECISION_BASE_URL ?? "http://localhost:11434");
+const initialPlayer = (): PlayerId => {
+  const asked = params.get("model");
+  return isPlayerId(asked) ? asked : DEFAULT_PLAYER;
+};
 const config = {
   mode: (params.get("mode") ?? "ai") as "ai" | "human",
-  model: bridge ? ON_DEVICE_MODEL : (params.get("model") ?? import.meta.env.VITE_DEFAULT_MODEL ?? "tev1:4b"),
+  model: bridge ? initialPlayer() : (params.get("model") ?? import.meta.env.VITE_DEFAULT_MODEL ?? "tev1:4b"),
   encoder: params.get("encoder") ?? DEFAULT_ENCODER,
   speed: Number(params.get("speed") ?? "1"),
   endpoint: params.get("endpoint") ?? defaultEndpoint,
@@ -85,8 +90,22 @@ function restart(): void {
 }
 
 // ---- agent -------------------------------------------------------------------
+function appPolicy(player: PlayerId) {
+  if (player === "phi4-mini") return nativeChatPolicy(bridge!, playerLabel(player), player);
+  if (player === "jev") {
+    const jev = nativeJevPolicy({ model: "jev-latest" });
+    if (jev) return jev;
+  }
+  return nativePolicy(bridge!, playerLabel("finetuned"), "finetuned");
+}
+
+/** The name shown in the HUD and the status heartbeat. */
+function modelName(): string {
+  return bridge && isPlayerId(config.model) ? playerLabel(config.model) : config.model;
+}
+
 function makePolicy() {
-  if (bridge) return nativePolicy(bridge, ON_DEVICE_MODEL);
+  if (bridge) return appPolicy(isPlayerId(config.model) ? config.model : DEFAULT_PLAYER);
   // "llm:<model>" is a plain Ollama chat model answering in constrained JSON, not a decision model.
   if (config.model.startsWith("llm:")) return llmPolicy({ baseUrl: config.endpoint, model: config.model.slice("llm:".length) });
   return systemOnePolicy({ baseUrl: config.endpoint, model: config.model, hosted: import.meta.env.VITE_DECISION_HOSTED === "1" });
@@ -177,7 +196,7 @@ function updateHud(): void {
   $("level").textContent = String(game.level);
   $("pellets").textContent = String(game.foodLeft);
   $("tps").textContent = String(tickTimes.length);
-  $("who").textContent = config.mode === "ai" ? `${config.model} · ${config.encoder}` : "keyboard";
+  $("who").textContent = config.mode === "ai" ? `${modelName()} · ${config.encoder}` : "keyboard";
 
   const recent = records.slice(-100);
   const lat = recent.map((r) => r.latencyMs);
@@ -286,7 +305,7 @@ function setupControls(): void {
 
   for (const name of Object.keys(ENCODERS)) encoder.add(new Option(name, name));
   if (bridge) {
-    // The on-device model is fixed; hide the HTTP endpoint and model fields.
+    // The app picks the player natively; hide the HTTP endpoint and lock the model field.
     model.disabled = true;
     for (const el of [endpoint, endpoint.previousElementSibling]) (el as HTMLElement).style.display = "none";
   }
@@ -300,12 +319,7 @@ function setupControls(): void {
     config.mode = mode.value as "ai" | "human";
     syncAgent();
   };
-  model.onchange = () => {
-    config.model = model.value.trim();
-    records.length = 0;
-    lastRecord = null;
-    syncAgent();
-  };
+  model.onchange = () => setModel(model.value.trim());
   encoder.onchange = () => {
     config.encoder = encoder.value;
     syncAgent();
@@ -345,6 +359,16 @@ async function loadModels(): Promise<void> {
   }
 }
 
+/** Switches the model (in the app, the player); latency and the probability bars start over for it. */
+function setModel(value: string): void {
+  config.model = value;
+  $<HTMLInputElement>("model").value = value;
+  records.length = 0;
+  lastRecord = null;
+  hideError();
+  syncAgent();
+}
+
 // Inside the iOS app, report game status so the run can be checked from the Mac.
 const statusBridge = (window as unknown as { webkit?: { messageHandlers?: { status?: { postMessage(m: unknown): void } } } })
   .webkit?.messageHandlers?.status;
@@ -358,7 +382,7 @@ if (statusBridge) {
       pelletsLeft: game.foodLeft, decisions: records.length, stale: records.filter((r) => r.stale).length,
       latencyP50: median(recent.map((r) => r.latencyMs)),
       tokensP50: median(recent.flatMap((r) => (r.inputTokens ? [r.inputTokens] : []))),
-      ticksPerSecond: tickTimes.length, mode: config.mode, model: config.model, paused,
+      ticksPerSecond: tickTimes.length, mode: config.mode, model: config.model, modelName: modelName(), paused,
       window: { seconds: 2, ...frameStats, maxGapMs: Math.round(frameStats.maxGapMs), droppedMs: Math.round(frameStats.droppedMs) },
       audio: audio.state, muted: audio.muted,
     });
@@ -390,6 +414,10 @@ requestAnimationFrame(frame);
     config.speed = value;
     game.options.speed = value;
     $<HTMLSelectElement>("speed").value = String(value);
+  },
+  setModel(value: string) {
+    if (bridge && !isPlayerId(value)) return;
+    if (value !== config.model) setModel(value);
   },
   restart,
   audio,

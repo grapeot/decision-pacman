@@ -29,6 +29,8 @@ export interface SystemOneConfig {
   apiKey?: string;
   /** A hosted endpoint, reached without a key here because a proxy adds it. Hosted endpoints reject keep_alive. */
   hosted?: boolean;
+  /** Transport, for example the iOS app's native bridge, which adds the key itself. Defaults to the global fetch. */
+  fetch?: typeof fetch;
 }
 
 export function buildRequest(cfg: SystemOneConfig, enc: EncodedDecision): object {
@@ -48,14 +50,14 @@ export async function askSystemOne(cfg: SystemOneConfig, enc: EncodedDecision, s
   const started = performance.now();
   let res: Response;
   try {
-    res = await fetch(url, {
+    res = await (cfg.fetch ?? fetch)(url, {
       method: "POST",
       headers: { "Content-Type": "application/json", ...(cfg.apiKey ? { Authorization: `Bearer ${cfg.apiKey}` } : {}) },
       body: JSON.stringify(buildRequest(cfg, enc)),
       signal,
     });
   } catch (err) {
-    if ((err as Error).name === "AbortError") throw err;
+    if ((err as Error).name === "AbortError" || err instanceof DecisionApiError) throw err;
     throw new DecisionApiError(
       "network",
       `Cannot reach ${url}`,

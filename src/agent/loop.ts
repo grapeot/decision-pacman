@@ -99,8 +99,11 @@ export class AgentLoop {
       }
       const askedTick = game.tick;
       this.controller = new AbortController();
+      // The player can be switched while a request is in flight; its answer then belongs to nobody.
+      const policy = this.policy;
       try {
-        const d = await this.policy.decide(enc, this.controller.signal, game);
+        const d = await policy.decide(enc, this.controller.signal, game);
+        if (policy !== this.policy) continue;
         backoff = 500;
         this.latency.update(d.latencyMs);
         const now = this.hooks.getState();
@@ -109,7 +112,7 @@ export class AgentLoop {
         if (!stale && input) this.hooks.apply(input);
         this.hooks.onDecision({
           time: Date.now(),
-          model: this.policy.name,
+          model: policy.name,
           encoder: this.encoder.name,
           junction: dp.key,
           keys: enc.keys,
@@ -130,6 +133,7 @@ export class AgentLoop {
         if (d.latencyMs < 5) await sleep(33);
       } catch (err) {
         if ((err as Error).name === "AbortError") return;
+        if (policy !== this.policy) continue;
         this.hooks.onError(err);
         await sleep(backoff);
         backoff = Math.min(backoff * 2, 4000);

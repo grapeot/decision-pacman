@@ -1,6 +1,6 @@
 """Split decision latency into reading the prompt (prefill) and writing tokens (decode).
 
-Sends the rendered game prompts in ios/DecisionPacman/bench_prompts.json, once
+Sends the rendered game prompts in ios/mac_check/bench_prompts.json, once
 with 1 output token (what a decision model needs: one forward pass, then read
 the option logits) and once with several (what a chat model writing a small
 JSON answer needs). Works against Ollama (/api/generate, raw prompt) or a
@@ -62,7 +62,7 @@ def main() -> None:
     ap.add_argument("--backend", choices=["ollama", "llamacpp"], required=True)
     ap.add_argument("--base-url", default="http://localhost:11434")
     ap.add_argument("--model", required=True)
-    ap.add_argument("--prompts", default="ios/DecisionPacman/bench_prompts.json")
+    ap.add_argument("--prompts", default="ios/mac_check/bench_prompts.json")
     ap.add_argument("--rounds", type=int, default=3)
     ap.add_argument("--decode", type=int, nargs="+", default=[1, 7], help="output token counts to time")
     ap.add_argument("--concurrency", type=int, default=1, help="parallel requests for a throughput run (1-token answers)")

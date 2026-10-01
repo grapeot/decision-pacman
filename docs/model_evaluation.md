@@ -342,7 +342,7 @@ Per game, Jev with lookahead ate 432, 730, 481, 418, 972, 966, 301, 671, 461, an
 
 ### 17. Where the time goes: prefill, decode, and hardware
 
-`scripts/bench_prefill_decode.py` sends the 20 rendered game prompts in `ios/DecisionPacman/bench_prompts.json` (about 383 tokens each) with 1 output token, as a decision model needs, and with 7, as a chat model writing a short JSON answer needs. Every request starts with a unique tag so no prompt cache is reused. The same Q8_0 GGUF files ran on both machines: Ollama 0.35.0 on the Apple M3 Ultra, and a CUDA build of llama.cpp (`llama-server` with default settings, 8 slots) on one RTX 5090. `llama-bench` (prompt 384, generate 7) gives the 5090's compute-only floor. Medians; prefill and decode are the servers' own timings.
+`scripts/bench_prefill_decode.py` sends the 20 rendered game prompts in `ios/mac_check/bench_prompts.json` (about 383 tokens each) with 1 output token, as a decision model needs, and with 7, as a chat model writing a short JSON answer needs. Every request starts with a unique tag so no prompt cache is reused. The same Q8_0 GGUF files ran on both machines: Ollama 0.35.0 on the Apple M3 Ultra, and a CUDA build of llama.cpp (`llama-server` with default settings, 8 slots) on one RTX 5090. `llama-bench` (prompt 384, generate 7) gives the 5090's compute-only floor. Medians; prefill and decode are the servers' own timings.
 
 | | M3 Ultra, Ollama | RTX 5090, llama-server | RTX 5090, llama-bench |
 |---|---|---|---|
