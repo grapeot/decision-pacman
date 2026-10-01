@@ -30,12 +30,26 @@ All rows: `features` input, no lookahead, 10 games on seeds 100-109, 1x speed, 5
 | greedy (scripted) | 201 | 63 s | 0 ms | section 11 |
 | `llm:gemma4:e4b` | 230 | 55 s | 253 ms | section 14 |
 | `llm:phi4-mini` | 232 | 55 s | 187 ms | section 14 |
-| `pacman-0.8b` | 386 | 81 s | 59-63 ms | sections 11, 18 |
 | `pacman-0.8b-qwen` | 425 | 86 s | 55 ms | section 18 |
 
-The fine-tuned rows report the mean of three 10-game runs: `pacman-0.8b` scored 456, 300, and 400 pellets; `pacman-0.8b-qwen` scored 441, 467, and 366 pellets. Model weights and training datasets are not published in the repository; to train them, follow [guides/distill.md](guides/distill.md).
+The `pacman-0.8b-qwen` row is the mean of three 10-game runs: 441, 467, and 366 pellets.
 
 For commands to run ladder evaluations, see [guides/evaluate.md](guides/evaluate.md).
+
+## The distilled model
+
+`pacman-0.8b-qwen` is a LoRA fine-tune of Qwen3.5-0.8B, the base of `tev1:0.8b`, served as Q8_0 GGUF through Ollama's `/v1/systemone`. Its teacher, Qwen3.8-27B, chose a move for each training state (31,570 rows after deduplication) while seeing one simulated 5-second future per option (`teacher-peek5s`). That lookahead was used only to make labels. The student reads `features` only, like every player on the ladder (section 18).
+
+| Measure | `pacman-0.8b-qwen` | Compare with | Source |
+|---|---|---|---|
+| Realtime pellets (3-run mean) | 425 | `tev1:0.8b` 69, Jev 178 | section 18 |
+| Lockstep pellets | 417 | the teacher without lookahead, thinking off: 301 (seeds 100-102) | sections 13, 18 |
+| Decision p50, M3 Ultra | 55 ms | `tev1:0.8b` 62 ms | sections 11, 18 |
+| Decision latency, iPhone 16 Pro Max | about 400 ms | | [guides/iphone.md](guides/iphone.md) |
+| Agreement with the teacher | 61.9% | `tev1:0.8b` 34.3% | section 18 |
+| JevBench accuracy (194 items) | 0.53 | `tev1:0.8b` 0.66 | section 18 |
+
+The weights are on Hugging Face at [grapeot/decision-pacman-0.8b-GGUF](https://huggingface.co/grapeot/decision-pacman-0.8b-GGUF), with a Modelfile that carries the system prompt the model was trained under. [guides/run-models.md](guides/run-models.md) shows how to import them into Ollama. The training data is not published; to rebuild the model, follow [guides/distill.md](guides/distill.md).
 
 ## Lockstep results
 
@@ -49,28 +63,19 @@ Under the lockstep clock, the simulation pauses until the model returns an answe
 
 The Qwen evaluations covered 3 games on seeds 100-102 (individual scores: 361, 361, 180 with thinking off). Qwen ran on an RTX 5090 (NVFP4) over the local network.
 
-## Records with lookahead in the input
+## Agreement with the teacher
 
-In these runs the player's input included engine rollouts (lookahead), or the player computed them at decision time (`oracle-5s`). They are kept as records and as evidence of label quality. They are not compared with the ladder.
-
-| Player | Clock | Mean pellets | Source |
-|---|---|---|---|
-| `oracle-5s` | realtime | 1,109 | section 10 |
-| Qwen3.8-27B (`teacher-peek5s`) | lockstep | 1,396 | section 13 |
-| Student B (`pacman-0.8b-qwen-peek`) | lockstep | 1,387 | section 18 |
-| Student B (`pacman-0.8b-qwen-peek`) | realtime | 765 | section 18 |
-| Jev (`features-peek5s`) | realtime | 567 | section 16 |
-| `tev1:4b` (`features-peek5s`) | realtime | 212 | section 16 |
-
-`oracle-5s` rolls the engine forward 5 seconds per option in about 5 ms CPU time; rollout variants `oracle-3s` and `oracle-8s` scored 1,009 and 1,011 pellets, respectively.
-
-For label quality, the Qwen teacher with 5-second lookahead (`teacher-peek5s`) selected the oracle's top choice on 90.7% of training states, 92.0% of validation states, and 88.3% on section 11's 1,000 validation states (88-92% overall).
-
-## Agreement with the oracle
-
-This offline test measures how often a model selects the option preferred by `oracle-5s` across 1,000 held-out validation states. It serves as a secondary check to in-game performance.
+This offline test measures how often a model selects the teacher's move on 1,000 held-out validation states (seeds 900-999, never used for training). It is a secondary check; play in the game carries more weight.
 
 | Player | Agreement | Source |
+|---|---|---|
+| `tev1:0.8b` | 34.3% | section 18 |
+| `tev1:4b` | 38.2% | section 18 |
+| `pacman-0.8b-qwen` | 61.9% | section 18 |
+
+The teacher-labeled set was scored for these models only. The other players were scored against a second reference: the best option of the rollout search `oracle-5s` (see the FAQ below) on 1,000 validation states drawn the same way.
+
+| Player | Agreement with the search | Source |
 |---|---|---|
 | `tev1:0.8b` | 31.8% | section 11 |
 | `tev1:4b` | 38.4% | section 11 |
@@ -78,7 +83,6 @@ This offline test measures how often a model selects the option preferred by `or
 | `llm:gemma4:e4b` | 43.6% | section 14 |
 | `llm:phi4-mini` | 44.0% | section 14 |
 | `llm:qwen3.5:4b` | 45.4% | section 14 |
-| `pacman-0.8b` | 53.9% | sections 11, 18 |
 | `pacman-0.8b-qwen` | 55.3% | section 18 |
 
 ## Generality outside Pac-Man
@@ -90,7 +94,6 @@ Accuracy on 194 public JevBench decision items (non-Pac-Man tasks including supp
 | `tev1:4b` | 0.81 | section 15 |
 | `tev1:0.8b` | 0.66 | section 15 |
 | `pacman-0.8b-qwen` | 0.53 | section 18 |
-| `pacman-0.8b` | 0.49 | section 18 |
 | Chance baseline | 0.32 | section 15 |
 | Jev 1.13.0 (JevBench's published run) | 0.89 | section 15 |
 
@@ -98,22 +101,22 @@ Jev's 0.89 is computed from JevBench's published per-item results on the same 19
 
 ## Where decision time goes
 
-Latency medians measured on 20 game prompts of approximately 383 tokens (section 17).
+Latency medians measured on 20 game prompts of approximately 383 tokens (section 17). The 0.8B rows were measured on `pacman-0.8b`, an earlier fine-tune with the same base, size, and Q8_0 quantization as `pacman-0.8b-qwen`.
 
 | Metric | M3 Ultra, Ollama | RTX 5090, llama-server | RTX 5090, llama-bench |
 |---|---|---|---|
 | `tev1:4b` prefill | 178 ms | 50 ms | 25 ms |
 | `tev1:4b` each further output token | 12.0 ms | 4.8 ms | 4.5 ms |
 | `tev1:4b` end to end, 1 output token | 197 ms | 124 ms | - |
-| `pacman-0.8b` prefill | 41 ms | 17 ms | 11 ms |
-| `pacman-0.8b` each further output token | 5.5 ms | 2.1 ms | 2.0 ms |
-| `pacman-0.8b` end to end, 1 output token | 54 ms | 47 ms | - |
+| fine-tuned 0.8B prefill | 41 ms | 17 ms | 11 ms |
+| fine-tuned 0.8B each further output token | 5.5 ms | 2.1 ms | 2.0 ms |
+| fine-tuned 0.8B end to end, 1 output token | 54 ms | 47 ms | - |
 
 A decision is prefill-bound. A decision model reads its answer directly from option logits in one forward pass, whereas a chat model generating a ~6-token JSON response spends an additional ~72 ms on the M3 Ultra and ~27 ms on the RTX 5090 in decoding steps.
 
 ## Variance and caveats
 
-Realtime scores for the same model varied by up to about 150 pellets across 10-game runs. For example, `pacman-0.8b` recorded runs of 456, 300, and 400 pellets. The 2026-10-01 runs shared the host Mac with heavy unrelated background workload (load average 15-36); `pacman-0.8b` and `pacman-0.8b-qwen` runs were alternated to face matching load conditions. Compare realtime scores within the same session rather than across days.
+Realtime scores for the same model varied by up to about 150 pellets across 10-game runs (section 18). `pacman-0.8b-qwen` recorded runs of 441, 467, and 366 pellets. The 2026-10-01 runs shared the host Mac with heavy unrelated background workload (load average 15-36); the models compared that day were alternated to face matching load conditions. Compare realtime scores within the same session rather than across days.
 
 Single games show wide variance. Jev's 10 evaluation games ranged from 103 to 231 pellets.
 
@@ -133,4 +136,33 @@ All clips record 30 seconds of gameplay on seed 100 at 1x speed.
 | [`media/demo_tev1_4b.mp4`](media/demo_tev1_4b.mp4) | `tev1:4b` | 1,250 | 101 | 1 |
 | [`media/demo_jev.mp4`](media/demo_jev.mp4) | Jev 1.13.0 (hosted) | 900 | 86 | 1 |
 | [`media/demo_qwen35_4b.mp4`](media/demo_qwen35_4b.mp4) | `llm:qwen3.5:4b` | 1,370 | 109 | 0 |
-| [`media/demo_pacman_08b.mp4`](media/demo_pacman_08b.mp4) | `pacman-0.8b` | 2,660 | 170 | 0 |
+| [`media/demo_pacman_08b_qwen.mp4`](media/demo_pacman_08b_qwen.mp4) | `pacman-0.8b-qwen` | 3,320 | 176 | 0 |
+
+## Records with lookahead in the input
+
+In these runs the player's input included engine rollouts (lookahead). They are kept as records and as evidence of label quality. They are not compared with the ladder.
+
+| Player | Clock | Mean pellets | Source |
+|---|---|---|---|
+| Qwen3.8-27B (`teacher-peek5s`), the teacher as it labeled | lockstep | 1,396 | section 13 |
+| Student B (`pacman-0.8b-qwen-peek`) | lockstep | 1,387 | section 18 |
+| Student B (`pacman-0.8b-qwen-peek`) | realtime | 765 | section 18 |
+| Jev (`features-peek5s`) | realtime | 567 | section 16 |
+| `tev1:4b` (`features-peek5s`) | realtime | 212 | section 16 |
+
+Student B was trained on the same teacher labels as `pacman-0.8b-qwen` but reads the lookahead encoding, so it is a record of how much of the teacher a 0.8B can copy when it sees what the teacher saw.
+
+## FAQ: the search oracle and the first student
+
+The game has an exact simulator, so a search can play it well. `oracle-5s` (`src/agent/oracle.ts`) copies the game for each option and rolls the engine forward 5 seconds with greedy play at later junctions. It sees the future at decision time, so it is a record, not a ladder player. Real tasks rarely have a simulator, which is why the project's teacher is a general LLM. The same rollouts are what the teacher saw when labeling.
+
+| Measure | Value | Source |
+|---|---|---|
+| `oracle-5s`, realtime, seeds 100-109 | 1,109 pellets at about 5 ms of CPU per decision | section 10 |
+| `oracle-3s`, `oracle-8s` | 1,009 and 1,011 pellets | section 10 |
+| Teacher's agreement with the search's best option | 90.7% of training states, 92.0% of validation states, 88.3% on section 11's 1,000 states | section 18 |
+| `pacman-0.8b`, an earlier 0.8B trained on the search's labels (31,585 states) | 386 pellets, mean of 3 runs (456, 300, 400), 59-63 ms | sections 11, 18 |
+| `pacman-0.8b` agreement with the search | 53.9% | section 11 |
+| `pacman-0.8b` JevBench accuracy | 0.49 | section 18 |
+
+The first student and the LLM-distilled one play at the same level: the gap between 386 and 425 is smaller than the run-to-run spread. Section 18 also trained a third student on the search's best option as hard labels (406 pellets, one run).

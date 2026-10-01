@@ -187,6 +187,11 @@
 - Screened small plain chat models in lockstep (features input, seeds 100-109, 10 games) before stopping the search: `qwen3.5:0.8b` 35 pellets, `gemma3:1b` 45, `llama3.2:1b` 117, `qwen3:1.7b` 121, against Jev 161 in lockstep. None of the 1B-class models reached Jev.
 - Tried qwen3.5 4B as a fourth iPhone player (Qwen3.5 chat template with thinking off, matched to Ollama's `think: false` rendering on 12 states). On the iPhone 16 Pro Max with Wait on it took 2.75-2.9 s per decision after a 3.4 s load, about the same as phi4-mini (3.0-3.2 s in the same session, thermal state `serious`). The app keeps three players: the distilled 0.8B, phi4-mini, and Jev.
 - Ollama's `qwen3.5:4b` blob does not load in the app's llama.cpp (`qwen35.rope.dimension_sections has wrong array length; expected 4, got 3`); a standard GGUF such as unsloth's `Qwen3.5-4B-Q4_K_M.gguf` does.
+### 2026-10-01 (published model, oracle to the FAQ)
+
+- Published `pacman-0.8b-qwen` on Hugging Face (`grapeot/decision-pacman-0.8b-GGUF`): the Q8_0 GGUF and a Modelfile with the training system prompt. README, `results.md`, and the run, distill, and iPhone guides now install it from there.
+- Reframed the public docs around off-the-shelf models against the 0.8B distilled from the LLM teacher. The rollout search `oracle-5s` and the student trained on it, `pacman-0.8b`, moved to an FAQ in the README and `results.md`; `model_evaluation.md` is unchanged.
+- Recorded `docs/media/demo_pacman_08b_qwen.mp4` (browser, seed 100, 1x, 30 s, M3 Ultra under unrelated background load, load average about 20): score 3,320, 176 pellets, no lives lost. The first take opened on about 27 s of blank page while Vite optimized dependencies in a fresh checkout; the second take, with the cache warm, is the one kept.
 
 ## Lessons Learned
 
