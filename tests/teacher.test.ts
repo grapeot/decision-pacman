@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseTeacherReply, TeacherParseError, teacherPrompt } from "../src/agent/teacher.ts";
+import { parseTeacherReply, TeacherParseError, teacherPolicy, teacherPrompt, type TeacherDecision } from "../src/agent/teacher.ts";
 import { createGame, step } from "../src/engine/game.ts";
 import { findDecisionPoint } from "../src/engine/decision.ts";
 import { ENCODERS } from "../src/encoders/index.ts";
@@ -47,5 +47,27 @@ describe("teacherPrompt with lookahead", () => {
     expect(prompt).toContain("Lookahead:");
     expect(prompt).toContain(JSON.stringify(outcomes));
     expect(teacherPrompt(enc)).not.toContain("Lookahead:");
+  });
+});
+
+describe("teacher answer cache", () => {
+  it("asks the server once per distinct prompt", async () => {
+    let calls = 0;
+    const fetchFn = (async () => {
+      calls++;
+      return new Response(JSON.stringify({ choices: [{ message: { content: '{"move": "back", "reason": "r"}' } }], usage: { completion_tokens: 9 } }));
+    }) as unknown as typeof fetch;
+    const cache = new Map();
+    const policy = teacherPolicy({ baseUrl: "http://teacher.invalid/v1", model: "m", cache, fetchFn });
+    const s = createGame(1);
+    while (s.phase !== "playing") step(s);
+    const enc = ENCODERS.features.encode(s, findDecisionPoint(s));
+    const first = (await policy.decide(enc, undefined, s)) as TeacherDecision;
+    const second = (await policy.decide(enc, undefined, s)) as TeacherDecision;
+    expect(calls).toBe(1);
+    expect(first.cached).toBeUndefined();
+    expect(second.cached).toBe(true);
+    expect(second.choice).toBe(first.choice);
+    expect(cache.size).toBe(1);
   });
 });

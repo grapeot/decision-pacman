@@ -1,18 +1,25 @@
-"""Score oracle-labeled validation states through a /v1/systemone endpoint.
+"""Score labeled validation states through a /v1/systemone endpoint.
 
   python3 training/score_ollama.py --model tev1:0.8b --n 1000 --out runs/score_tev1_08b.json
   TYPESAFE_API_KEY=... python3 training/score_ollama.py --base-url https://api.typesafe.ai --model jev-latest
   python3 training/score_ollama.py --chat --model qwen3.5:4b   # a plain chat model, as the llm:<model> policy asks it
+  python3 training/score_ollama.py --model pacman-0.8b-qwen --data data/q1/val --target label
+  python3 training/score_ollama.py --model pacman-0.8b-qwen-peek --data data/q1/val --target label --encoder features-peek5s
 
 Sends each state exactly as the game client does and reports agreement with
-the oracle's best option: overall, on decisive states (oracle target above
-0.9), and the cross-entropy against the oracle's soft target. With --chat,
-it asks a plain chat model through /api/chat the way `src/agent/llm.ts` does:
-the same prompt, a JSON schema restricted to the options, thinking off, and
-probabilities from the logprobs of the move token. Standard library only.
+the labeler's best option: overall, on decisive states (target above 0.9),
+and the cross-entropy against the target. With --target values the target is
+the oracle's soft target; with --target label it is the record's label (for a
+chat-model teacher, its move), so every state counts as decisive. --encoder
+sends an encoding stored under "alt" (see build_sft.py) instead of the
+record's own. With --chat, it asks a plain chat model through /api/chat the
+way `src/agent/llm.ts` does: the same prompt, a JSON schema restricted to the
+options, thinking off, and probabilities from the logprobs of the move token.
+Standard library only.
 """
+from __future__ import annotations
+
 import argparse
-import glob
 import json
 import math
 import os
@@ -20,24 +27,12 @@ import random
 import time
 import urllib.request
 
-from build_sft import soft_target
+from build_sft import load_records
 
 
-def load_states(data_dir: str, temperature: float) -> list[dict]:
-    rows, seen = [], set()
-    for path in sorted(glob.glob(os.path.join(data_dir, "*", "states.jsonl"))):
-        for line in open(path):
-            r = json.loads(line)
-            if not r.get("values"):
-                continue
-            keys = list(r["criteria"].keys())
-            sig = json.dumps([r["state"], keys])
-            if sig in seen:
-                continue
-            seen.add(sig)
-            r["target"] = soft_target(r["values"], keys, temperature)
-            rows.append(r)
-    return rows
+def load_states(data_dir: str, temperature: float, kind: str = "values", encoder: str | None = None) -> list[dict]:
+    """Deduplicated labeled states with a `target`; hard labels are scored unsmoothed."""
+    return load_records(data_dir, kind, encoder, temperature, 0.0)
 
 
 def ask(base: str, model: str, r: dict) -> dict:
@@ -116,12 +111,14 @@ def main() -> None:
     ap.add_argument("--data", default="data/v1/val")
     ap.add_argument("--n", type=int, default=1000)
     ap.add_argument("--temperature", type=float, default=50.0)
+    ap.add_argument("--target", choices=["values", "label"], default="values")
+    ap.add_argument("--encoder", default=None, help="send this encoding from the record's alt field")
     ap.add_argument("--out", default=None)
     ap.add_argument("--chat", action="store_true", help="ask a plain chat model through /api/chat with constrained JSON")
     args = ap.parse_args()
     ask_fn = ask_chat if args.chat else ask
 
-    rows = load_states(args.data, args.temperature)
+    rows = load_states(args.data, args.temperature, args.target, args.encoder)
     random.Random(0).shuffle(rows)
     rows = rows[: args.n]
     ask_fn(args.base_url, args.model, rows[0])  # warm-up
@@ -145,6 +142,9 @@ def main() -> None:
     report = {
         "model": args.model,
         **({"chat": True} if args.chat else {}),
+        "data": args.data,
+        "target": args.target,
+        **({"encoder": args.encoder} if args.encoder else {}),
         "n": n,
         "acc": round(ok / n, 4),
         "acc_decisive": round(decisive_ok / max(1, decisive), 4),

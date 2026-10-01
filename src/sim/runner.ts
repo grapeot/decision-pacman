@@ -18,6 +18,8 @@ export interface GameOptionsForRun {
   maxSeconds?: number;
   /** Optional second policy asked about every decision the player makes; its answer is not played. */
   labeler?: Policy;
+  /** More encoders applied to the same state at every decision, so one run can train students that read different inputs. */
+  alsoEncode?: Encoder[];
   onDecision?: (ev: DecisionEvent) => void;
 }
 
@@ -27,6 +29,8 @@ export interface DecisionEvent {
   answeredTick: number;
   dp: DecisionPoint;
   enc: EncodedDecision;
+  /** The same state under each of `alsoEncode`, by encoder name. */
+  alt?: Record<string, EncodedDecision>;
   decision: PolicyDecision | null;
   /** Labeler's answer; null if the labeler failed on this state. */
   label?: PolicyDecision | null;
@@ -91,6 +95,7 @@ export async function playGame(o: GameOptionsForRun): Promise<GameSummary> {
     }
 
     const askedTick = s.tick;
+    const alt = o.alsoEncode?.length ? Object.fromEntries(o.alsoEncode.map((e) => [e.name, e.encode(s, dp)])) : undefined;
     const [played, labeled] = await Promise.all([
       tryDecide(o.policy, enc, s),
       o.labeler && o.labeler !== o.policy ? tryDecide(o.labeler, enc, s) : Promise.resolve(null),
@@ -124,6 +129,7 @@ export async function playGame(o: GameOptionsForRun): Promise<GameSummary> {
       answeredTick: s.tick,
       dp,
       enc,
+      alt,
       decision: d,
       label,
       stale: isStale,

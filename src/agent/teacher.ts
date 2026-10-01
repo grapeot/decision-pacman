@@ -14,11 +14,20 @@ export interface TeacherConfig {
   /** Show the model one simulated future per option, this many seconds long. Needs the live game state. */
   peekSeconds?: number;
   timeoutMs?: number;
+  /**
+   * Answers by exact prompt. A repeated prompt is answered from here without a request; the answer is deterministic
+   * at temperature 0, and lockstep play revisits identical states often.
+   */
+  cache?: Map<string, TeacherDecision>;
+  /** Request function, replaceable in tests. */
+  fetchFn?: typeof fetch;
 }
 
 export interface TeacherDecision extends PolicyDecision {
   reason: string;
   outputTokens: number;
+  /** True when the answer came from `cache` instead of the server. */
+  cached?: boolean;
 }
 
 export class TeacherParseError extends Error {}
@@ -69,12 +78,15 @@ export function teacherPolicy(cfg: TeacherConfig): Policy {
         for (const key of enc.keys) outcomes[key] = peek(game, enc, key, Math.round(cfg.peekSeconds * TPS));
         peeks = { seconds: cfg.peekSeconds, outcomes };
       }
-      const res = await fetch(`${cfg.baseUrl.replace(/\/$/, "")}/chat/completions`, {
+      const prompt = teacherPrompt(enc, peeks);
+      const hit = cfg.cache?.get(prompt);
+      if (hit) return { ...hit, latencyMs: performance.now() - started, cached: true };
+      const res = await (cfg.fetchFn ?? fetch)(`${cfg.baseUrl.replace(/\/$/, "")}/chat/completions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           model: cfg.model,
-          messages: [{ role: "user", content: teacherPrompt(enc, peeks) }],
+          messages: [{ role: "user", content: prompt }],
           temperature: 0,
           max_tokens: cfg.think ? 4096 : 200,
           chat_template_kwargs: { enable_thinking: !!cfg.think },
@@ -88,13 +100,15 @@ export function teacherPolicy(cfg: TeacherConfig): Policy {
       };
       const text = body.choices[0]?.message?.content ?? "";
       const { move, reason } = parseTeacherReply(text, enc.keys);
-      return {
+      const decision: TeacherDecision = {
         choice: move,
         reason,
         latencyMs: performance.now() - started,
         inputTokens: body.usage?.prompt_tokens,
         outputTokens: body.usage?.completion_tokens ?? 0,
       };
+      cfg.cache?.set(prompt, decision);
+      return decision;
     },
   };
 }
