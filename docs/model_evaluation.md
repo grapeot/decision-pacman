@@ -9,6 +9,7 @@ This document records how we chose the in-game model, the fine-tuning target, an
 - **Labels: a search oracle, not an LLM.** An agent that rolls the game engine forward 5 seconds for each option survived every 5-minute evaluation game and averaged 1,109 pellets, at 5 ms of local CPU per decision. Qwen3.8-27B looked strong on the synthetic probe (0.97), but as a player it lost all three lives within 39 to 93 seconds in 5-minute games.
 - **Fine-tuning works.** A 0.8B model fine-tuned on 31,585 oracle-labeled states (`pacman-0.8b`) averaged 456 pellets and 94 s per game at 63 ms per decision. That is 6.6 times off-the-shelf `tev1:0.8b` at the same speed, 3 times `tev1:4b`, and more than twice the scripted greedy rule. The oracle it learned from still averages 1,109.
 - **Hosted Jev sits between `tev1:4b` and the greedy rule.** Through TypeSafe's API, Jev 1.13.0 averaged 178 pellets and 52 s per game at 115 ms per decision, and agreed with the oracle on 39.9% of held-out states. The fine-tuned 0.8B model beats it on both.
+- **An ordinary small chat model plays as well as Jev.** Given the same facts, a JSON schema restricted to the legal options, and thinking off, stock `phi4-mini` averaged 232 pellets at 187 ms per decision, `gemma4:e4b` 230, and `qwen3.5:4b` 197, against Jev's 178, all in real time with no failed answers. All three also agreed with the oracle more often than Jev (44-45% against 39.9%).
 - **A general LLM with lookahead beats the search oracle.** Qwen3.8-27B, shown one 5-second simulated future per option, averaged 1,396 pellets and reached level 6 in all 10 games, against 1,109 for `oracle-5s`, which scores the same rollouts with a hand-written formula. Without the lookahead, thinking took Qwen from 301 to 531 pellets, but it still lost all its lives within about two minutes.
 - **State representation matters more than model size.** Compact per-direction facts beat a full ASCII board in both latency and decision quality. Quantization and prefix caching did not reduce latency.
 
@@ -225,6 +226,50 @@ Both players see the same rollouts. The oracle reduces each to one number (point
 
 Thinking alone helps (301 to 531 pellets) but costs about 9 times the latency, and the model still misjudges danger from the encoded facts alone.
 
+### 14. Plain small chat models with structured output
+
+Does Jev, or Tev1, do something an ordinary small model cannot? `llm:<model>` (`src/agent/llm.ts`) asks a general chat model through Ollama's `/api/chat` with the facts Jev sees: the features state, the same instructions, and the same options, in the teacher's prompt from section 9 without the reason field. A JSON schema restricts `move` to the legal options, so every answer is legal. Thinking is off, temperature is 0, and the model stays loaded. Option probabilities come from the token logprobs at the position where the move is written, renormalized over the options. The clock is realtime, as it was for Jev.
+
+The models are stock Ollama library builds (Q4_K_M), pulled for this test:
+
+- `qwen3.5:4b` (4.7B): the base model that Tev1's 4B LoRA is trained on.
+- `gemma4:e4b` (7.5B stored, about 4B used per token).
+- `phi4-mini` (3.8B).
+
+**In-game**, evaluation seeds 100-109, realtime clock, 1x speed, 5-minute cap, features encoder:
+
+| Player | Mean pellets | Mean score | Mean survival | Levels cleared | Decision p50 | Stale | Failed answers |
+|---|---|---|---|---|---|---|---|
+| random | 30 | 311 | 37 s | 0 of 10 | 0 ms | 0% | - |
+| `tev1:4b` | 148 | 1,660 | 55 s | 0 of 10 | 202 ms | 11% | - |
+| Jev 1.13.0 (hosted) | 178 | 2,482 | 52 s | 0 of 10 | 115 ms | 3% | - |
+| `llm:qwen3.5:4b` | 197 | 2,553 | 47 s | 0 of 10 | 267 ms | 9% | 0 of 1,553 |
+| greedy (scripted) | 201 | 2,623 | 63 s | 0 of 10 | 0 ms | 0% | - |
+| `llm:gemma4:e4b` | 230 | 3,276 | 55 s | 1 of 10 | 253 ms | 4% | 0 of 1,929 |
+| `llm:phi4-mini` | 232 | 3,142 | 55 s | 2 of 10 | 187 ms | 4% | 0 of 2,468 |
+| `pacman-0.8b` (fine-tuned) | 456 | 7,467 | 94 s | 8 of 10 | 63 ms | 3% | - |
+
+Per game, `qwen3.5:4b` ate 213, 242, 185, 152, 239, 219, 122, 215, 217, and 169 pellets; `gemma4:e4b` 220, 242, 304, 196, 211, 238, 232, 232, 195, and 230; `phi4-mini` 170, 235, 240, 226, 215, 269, 221, 144, 371, and 231. Every game ended with all three lives lost. Paired by seed against Jev, the mean difference is +20 pellets for `qwen3.5:4b` (standard error 14), +52 for `gemma4:e4b` (17), and +54 for `phi4-mini` (24).
+
+**Agreement with the oracle**, the same 1,000 validation states as section 11, asked the same way as in the game (`training/score_ollama.py --chat`):
+
+| Model | Agreement | On decisive states | Cross-entropy | Latency p50 |
+|---|---|---|---|---|
+| `tev1:4b` | 38.4% | 40.7% | 1.29 | 205 ms |
+| Jev 1.13.0 (hosted) | 39.9% | 40.9% | 1.41 | 237 ms |
+| `llm:gemma4:e4b` | 43.6% | 43.6% | - | 245 ms |
+| `llm:phi4-mini` | 44.0% | 43.6% | 1.72 | 148 ms |
+| `llm:qwen3.5:4b` | 45.4% | 46.4% | 1.67 | 237 ms |
+| `pacman-0.8b` | 53.9% | 57.5% | 1.05 | 59 ms |
+
+Observations:
+
+- All three plain models play at least as well as Jev in real time, and none produced a failed answer. `gemma4:e4b` and `phi4-mini` also beat the greedy rule. `qwen3.5:4b`'s lead over Jev is within the noise of 10 games; the other two lead by about two to three standard errors. None comes near the fine-tuned 0.8B model.
+- Plain `qwen3.5:4b` beats `tev1:4b`, which is the same base with a decision LoRA, both in play (197 against 148 pellets) and in agreement (45.4% against 38.4%). The two differ in more than the LoRA: chat with a generated JSON answer against System One's scoring of option letters, and Q4_K_M against q8 weights. Which of these accounts for the gap was not tested.
+- The plain models are slower than Jev, not faster. A chat answer generates about six tokens (`{"move": "left"}`) after reading about 300 input tokens, which takes 190-270 ms locally against Jev's 115 ms over the network. The realtime clock therefore handicaps them. `qwen3.5:4b` is the slowest of the three and has the highest stale rate (9%).
+- Probabilities are available from logprobs for `qwen3.5:4b` and `phi4-mini` (median confidence 0.76 and 0.77). Ollama 0.35.0 returns logprobs only for the first generated token of `gemma4:e4b`, so it has none. The chat probabilities are more overconfident than the System One ones: cross-entropy against the oracle's soft target is 1.67-1.72, against 1.29-1.41. They are fine for the probability bars, not as calibrated scores.
+- What this shows: on this task, given the same facts, Jev has no advantage that a stock 4B chat model with constrained JSON output lacks. It does not test Jev's other selling points, such as several questions per request or calibration on other tasks. It also says something about the task: every player that reads only the features encoder, scripted, decision model, or chat model, lands between 148 and 232 pellets, while the fine-tuned 0.8B model reaches 456 from the same facts.
+
 ## Conclusions
 
 1. Use `tev1:4b` for the real-time demo. At about 160 ms, a decision is shorter than the typical 400 ms to 1.2 s Pac-Man needs to reach the next junction at arcade speed.
@@ -235,6 +280,7 @@ Thinking alone helps (301 to 531 pellets) but costs about 9 times the latency, a
 6. Compare clocks before comparing players. All Qwen results are lockstep, where the game waits for each answer; Jev, the Tev1 models, and `pacman-0.8b` are realtime, where slow answers arrive after the junction has passed. Qwen without thinking (301 pellets) beating Jev (178) does not yet show it would at realtime.
 7. Do not argue cost against Jev. At the price seen on Vercel AI Gateway ($0.042 per million input tokens), a whole game of about 340 decisions at 605 tokens each costs under a cent. The case for a fine-tuned local model is task accuracy, latency, offline use, and control. The cost case holds against calling a large general model at every step.
 8. A stronger teacher may not make a stronger student. The student's ceiling is set by what it sees at inference time. Qwen with lookahead beats the oracle by reading rollouts the features-only student never sees, so relabeling with it may leave the student near its current plateau. A student given the same lookahead facts would test this; the rollouts take milliseconds of CPU.
+9. Treat a plain chat model with constrained JSON as the off-the-shelf baseline. On this task it matches or beats the decision models (Jev, `tev1:4b`) from the same facts, so the decision API is a convenience here, not a capability. `phi4-mini` is the fastest and strongest of those tried and returns probabilities. The fine-tuned `pacman-0.8b` still doubles it.
 
 ## Possible follow-ups (not planned)
 

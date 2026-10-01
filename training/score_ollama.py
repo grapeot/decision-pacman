@@ -2,11 +2,14 @@
 
   python3 training/score_ollama.py --model tev1:0.8b --n 1000 --out runs/score_tev1_08b.json
   TYPESAFE_API_KEY=... python3 training/score_ollama.py --base-url https://api.typesafe.ai --model jev-latest
+  python3 training/score_ollama.py --chat --model qwen3.5:4b   # a plain chat model, as the llm:<model> policy asks it
 
 Sends each state exactly as the game client does and reports agreement with
 the oracle's best option: overall, on decisive states (oracle target above
-0.9), and the cross-entropy against the oracle's soft target. Standard
-library only.
+0.9), and the cross-entropy against the oracle's soft target. With --chat,
+it asks a plain chat model through /api/chat the way `src/agent/llm.ts` does:
+the same prompt, a JSON schema restricted to the options, thinking off, and
+probabilities from the logprobs of the move token. Standard library only.
 """
 import argparse
 import glob
@@ -53,6 +56,59 @@ def ask(base: str, model: str, r: dict) -> dict:
     return {"choice": move["choice"], "probabilities": move["probabilities"], "ms": (time.perf_counter() - t) * 1000}
 
 
+LLM_ANSWER = 'Answer with only a JSON object: {"move": "<one of the options>"}'
+
+
+def chat_prompt(r: dict) -> str:
+    """Same text as teacherPrompt(enc, undefined, LLM_ANSWER) in src/agent/teacher.ts."""
+    state = r["state"] if isinstance(r["state"], str) else json.dumps(r["state"], separators=(",", ":"), ensure_ascii=False)
+    options = "\n".join(f"- {k}: {c}" if c else f"- {k}" for k, c in r["criteria"].items())
+    return f"{r['instructions']}\n\nState:\n{state}\n\nOptions:\n{options}\n\n{LLM_ANSWER}"
+
+
+def move_probabilities(content: str, logprobs: list, keys: list[str]) -> dict:
+    """Mass of each option at the token that starts the move value, renormalized (as in src/agent/llm.ts)."""
+    colon = content.find(":", content.find('"move"'))
+    value_start = content.find('"', colon) + 1
+    end, at = 0, None
+    for t in logprobs or []:
+        end += len(t["token"])
+        if end > value_start:
+            at = t
+            break
+    mass = {k: 0.0 for k in keys}
+    for cand in (at or {}).get("top_logprobs") or ([at] if at else []):
+        text = cand["token"].lstrip(' "\t\n').lower()
+        if text:
+            for k in keys:
+                if k.startswith(text):
+                    mass[k] += math.exp(cand["logprob"])
+    total = sum(mass.values())
+    return {k: v / total for k, v in mass.items()} if total > 0 else {}
+
+
+def ask_chat(base: str, model: str, r: dict) -> dict:
+    keys = list(r["criteria"].keys())
+    body = {
+        "model": model,
+        "messages": [{"role": "user", "content": chat_prompt(r)}],
+        "format": {"type": "object", "properties": {"move": {"type": "string", "enum": keys}}, "required": ["move"]},
+        "think": False,
+        "stream": False,
+        "keep_alive": -1,
+        "logprobs": True,
+        "top_logprobs": 10,
+        "options": {"temperature": 0, "num_predict": 32},
+    }
+    req = urllib.request.Request(base.rstrip("/") + "/api/chat", data=json.dumps(body).encode(), headers={"Content-Type": "application/json"})
+    t = time.perf_counter()
+    out = json.loads(urllib.request.urlopen(req, timeout=120).read())
+    ms = (time.perf_counter() - t) * 1000
+    content = out["message"]["content"]
+    choice = str(json.loads(content).get("move", "")).strip().lower()
+    return {"choice": choice, "probabilities": move_probabilities(content, out.get("logprobs"), keys), "ms": ms}
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--model", required=True)
@@ -61,17 +117,19 @@ def main() -> None:
     ap.add_argument("--n", type=int, default=1000)
     ap.add_argument("--temperature", type=float, default=50.0)
     ap.add_argument("--out", default=None)
+    ap.add_argument("--chat", action="store_true", help="ask a plain chat model through /api/chat with constrained JSON")
     args = ap.parse_args()
+    ask_fn = ask_chat if args.chat else ask
 
     rows = load_states(args.data, args.temperature)
     random.Random(0).shuffle(rows)
     rows = rows[: args.n]
-    ask(args.base_url, args.model, rows[0])  # warm-up
+    ask_fn(args.base_url, args.model, rows[0])  # warm-up
     n = ok = decisive = decisive_ok = 0
     ce = 0.0
     lat, details = [], []
     for r in rows:
-        a = ask(args.base_url, args.model, r)
+        a = ask_fn(args.base_url, args.model, r)
         keys = list(r["criteria"].keys())
         best = keys[max(range(len(keys)), key=lambda i: r["target"][i])]
         hit = a["choice"] == best
@@ -86,6 +144,7 @@ def main() -> None:
     lat.sort()
     report = {
         "model": args.model,
+        **({"chat": True} if args.chat else {}),
         "n": n,
         "acc": round(ok / n, 4),
         "acc_decisive": round(decisive_ok / max(1, decisive), 4),

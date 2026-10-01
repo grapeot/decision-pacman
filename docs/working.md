@@ -100,6 +100,14 @@
 - Added `teacher-peek<N>s` (and `teacher-think-peek<N>s`): the Qwen teacher gets one N-second simulated future per option in its prompt.
 - Lockstep, 5-minute cap: Qwen with 5 s lookahead (thinking off) averaged 1,396 pellets and 22,054 points over seeds 100-109, all games reaching level 6, p50 309 ms. Qwen with thinking and no lookahead averaged 531 pellets over seeds 100-102 and lost all lives within 97-131 s, p50 2.4 s.
 
+### 2026-09-30 (plain small LLMs)
+
+- Added `llm:<model>` (`src/agent/llm.ts`): a stock Ollama chat model gets the teacher prompt over the features state, without the reason field, through `/api/chat` with a JSON schema whose `move` is an enum of the legal options. Thinking off, temperature 0, `keep_alive: -1`. Probabilities come from the top-10 logprobs at the move token, renormalized over the options. `teacherPrompt` now takes the answer line as a parameter.
+- Added `--chat` to `training/score_ollama.py`, which asks the same way. Its prompt matched `teacherPrompt` byte for byte on 600 validation states.
+- Pulled `qwen3.5:4b`, `gemma4:e4b`, and `phi4-mini` (all Q4_K_M). Latency probe on 40 fresh states, M3 Ultra: p50 263 ms, 243 ms, and 170 ms, about 300 input tokens and 7 output tokens per answer.
+- 10 evaluation games each, realtime, 1x, 5-minute cap: `qwen3.5:4b` 197 pellets, 2,553 points, 47 s, p50 267 ms, 9% stale; `gemma4:e4b` 230 pellets, 3,276 points, 55 s, p50 253 ms, 4% stale, 1 level cleared; `phi4-mini` 232 pellets, 3,142 points, 55 s, p50 187 ms, 4% stale, 2 levels cleared. No failed answers in 5,950 decisions. Jev was 178 pellets.
+- Oracle agreement on 1,000 validation states: `qwen3.5:4b` 45.4% (cross-entropy 1.67), `gemma4:e4b` 43.6%, `phi4-mini` 44.0% (1.72). Jev was 39.9%, `tev1:4b` 38.4%.
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.
@@ -126,4 +134,5 @@
 - llama.cpp's converter requirements pin transformers 4.57.6, but Qwen3.5 tokenizers need transformers 5.5 or later. Install the requirements, then upgrade transformers.
 - Measure a reported stall before fixing it. Per-window frame counts, the largest frame gap, and dropped simulated time, compared between AI and human mode and split by game phase, showed that on-device Metal inference does not starve the web view's frame loop. The planned fixes (smaller llama.cpp batches, gaps between decisions, a different catch-up rule) would have changed behavior for a problem that did not exist.
 - Launch the app with `devicectl device process launch --activate` when measuring. Without it, one launch left the app behind other UI: `requestAnimationFrame` stopped at once and timers stopped a few seconds later, which looks exactly like a frozen game. Check that the heartbeat's frame count is non-zero before reading anything else.
+- Ollama's chat logprobs are the model's raw distribution, before the JSON schema masks tokens: the first token's alternatives include a code fence. Renormalize over the legal options at the move token. On Ollama 0.35.0, `gemma4:e4b` returns logprobs only for the first generated token, so it gives no option probabilities.
 - On the phone, decision latency is not a constant. Sustained back-to-back inference nearly doubles it within a minute, so lookahead sizing and stale-rate numbers from the first 30 s of a game are optimistic.

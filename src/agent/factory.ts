@@ -1,5 +1,6 @@
 import { greedyPolicy, randomPolicy, systemOnePolicy, type Policy } from "./policies.ts";
 import { oraclePolicy } from "./oracle.ts";
+import { llmPolicy } from "./llm.ts";
 import { teacherPolicy } from "./teacher.ts";
 
 export interface PolicyEnv {
@@ -11,8 +12,8 @@ export interface PolicyEnv {
 /**
  * Policies by name: "random", "greedy", "jev" (TypeSafe's hosted Jev), "oracle" (engine rollouts; "oracle-8s-x2"
  * sets an 8 s horizon and 2 samples), "teacher", "teacher-think", and "-peek5s" variants that also show a 5 s simulated future per option (the
- * chat model from TEACHER_BASE_URL / TEACHER_MODEL), or any decision model
- * name served on the /v1/systemone endpoint.
+ * chat model from TEACHER_BASE_URL / TEACHER_MODEL), "llm:<model>" (a plain Ollama chat model answering in JSON
+ * constrained to the legal options), or any decision model name served on the /v1/systemone endpoint.
  */
 export function makePolicy(name: string, seed: number, env: PolicyEnv): Policy {
   if (name === "random") return randomPolicy(seed);
@@ -28,6 +29,7 @@ export function makePolicy(name: string, seed: number, env: PolicyEnv): Policy {
   }
   const oracle = /^oracle(?:-(\d+(?:\.\d+)?)s)?(?:-x(\d+))?$/.exec(name);
   if (oracle) return oraclePolicy({ horizonSeconds: oracle[1] ? Number(oracle[1]) : 5, samples: oracle[2] ? Number(oracle[2]) : 1 });
+  if (name.startsWith("llm:")) return llmPolicy({ baseUrl: env.decisionBaseUrl, model: name.slice("llm:".length) });
   const teacher = /^teacher(-think)?(?:-peek(\d+(?:\.\d+)?)s)?$/.exec(name);
   if (teacher) {
     if (!env.teacherBaseUrl || !env.teacherModel) {
