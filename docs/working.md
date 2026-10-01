@@ -143,6 +143,11 @@
 - JevBench generality: B 0.61, A 0.53, C 0.46.
 - Realtime runs today shared the Mac with heavy unrelated CPU load. Same-model runs varied by up to about 150 pellets.
 
+### 2026-10-01 (lookahead only labels data)
+
+- Decided that lookahead may label data but never enters a player's input in a comparison: an exact engine rollout is close to seeing the future. Results with lookahead in the input (sections 13, 16, and student B in 18) stay as records, not player comparisons.
+- The distilled 0.8B to cite is `pacman-0.8b-qwen`: teacher Qwen3.8-27B with lookahead, student on features only.
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.

@@ -29,6 +29,7 @@ A browser demo in which a local decision model (`/v1/systemone`, default `tev1:4
 
 - The simulation must never await the model. Keep the 30 Hz fixed step independent of the agent loop.
 - Benchmark and latency claims must come from fresh states. Exact repeated requests hit a cache and are 5–10x faster.
+- Lookahead (engine rollouts) may label training data but never goes into a player's input in a comparison. Players are compared on the same current-state input.
 - Record measured numbers (latency, tokens, scores) in `working.md` with the model, encoder, and hardware.
 - Public repo hygiene: no real emails, keys, internal paths, hostnames, or vault references in any tracked file. Use `.env.example` with placeholder values. Run a privacy scan (`rg -n -i "@|op://|/Users/|ts\.net|tailscale|api[_-]?key|token" .` and review every hit) before any push. None of this belongs in the README.
 - No original arcade art, audio, or branding. Draw graphics in code.
