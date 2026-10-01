@@ -35,8 +35,8 @@ function nearestFood(s: GameState): number {
   return best;
 }
 
-/** Value of playing `key` now: score gained over the horizon, minus a large penalty for dying (less if later). */
-export function rolloutValue(s0: GameState, enc: EncodedDecision, key: string, horizonTicks: number, rngSeed: number): number {
+/** Plays `key` now, then greedy play at later junctions, for up to `horizonTicks`. Returns the end state. */
+export function rollout(s0: GameState, enc: EncodedDecision, key: string, horizonTicks: number, rngSeed: number): GameState {
   const s = clone(s0);
   s.rng = (s.rng ^ Math.imul(rngSeed + 1, 0x9e3779b1)) | 0;
   const first = optionToInput(key, enc.decision);
@@ -54,6 +54,42 @@ export function rolloutValue(s0: GameState, enc: EncodedDecision, key: string, h
     }
     step(s, input);
   }
+  return s;
+}
+
+/** What happened in a rollout, as facts a model can read. */
+export interface PeekOutcome {
+  /** Seconds until Pac-Man dies, or null if he survives the whole horizon. */
+  dies_after_s: number | null;
+  pellets: number;
+  power_pellets: number;
+  ghosts_eaten: number;
+  points: number;
+}
+
+export function peek(s0: GameState, enc: EncodedDecision, key: string, horizonTicks: number): PeekOutcome {
+  const s = rollout(s0, enc, key, horizonTicks, 0);
+  const died = s.stats.deaths > s0.stats.deaths;
+  const eaten = s.stats.pelletsEaten - s0.stats.pelletsEaten;
+  const power = Math.max(0, countPower(s0) - countPower(s));
+  return {
+    dies_after_s: died ? Math.round(((s.stats.ticksPlaying - s0.stats.ticksPlaying) / TPS) * 10) / 10 : null,
+    pellets: eaten - power,
+    power_pellets: power,
+    ghosts_eaten: s.stats.ghostsEaten - s0.stats.ghostsEaten,
+    points: s.score - s0.score,
+  };
+}
+
+function countPower(s: GameState): number {
+  let n = 0;
+  for (const f of s.food) if (f === Food.Power) n++;
+  return n;
+}
+
+/** Value of playing `key` now: score gained over the horizon, minus a large penalty for dying (less if later). */
+export function rolloutValue(s0: GameState, enc: EncodedDecision, key: string, horizonTicks: number, rngSeed: number): number {
+  const s = rollout(s0, enc, key, horizonTicks, rngSeed);
   const gained = s.score - s0.score;
   if (s.stats.deaths > s0.stats.deaths) {
     // Dying later is better than dying sooner.

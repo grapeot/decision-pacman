@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { oraclePolicy, rolloutValue } from "../src/agent/oracle.ts";
+import { oraclePolicy, peek, rolloutValue } from "../src/agent/oracle.ts";
 import { createGame, step } from "../src/engine/game.ts";
 import { findDecisionPoint } from "../src/engine/decision.ts";
 import { ENCODERS } from "../src/encoders/index.ts";
@@ -49,5 +49,16 @@ describe("ascii-full encoder", () => {
     expect(map).toHaveLength(32);
     expect(map.slice(1).some((row) => row.includes("P"))).toBe(true);
     expect(enc.state as string).toContain("Pac-Man at column");
+  });
+
+  it("peek reports a simulated future as plain facts", () => {
+    const s = playing();
+    const enc = ENCODERS.features.encode(s, findDecisionPoint(s));
+    for (const key of enc.keys) {
+      const o = peek(s, enc, key, 90);
+      expect(o.dies_after_s).toBeNull();
+      expect(o.pellets).toBeGreaterThan(0);
+      expect(o.points).toBe(o.pellets * 10 + o.power_pellets * 50);
+    }
   });
 });
