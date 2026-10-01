@@ -2,12 +2,16 @@ import SwiftUI
 import WebKit
 
 /// The web game from the repository root, bundled under Web/ and served from
-/// app://local/ so its ES modules load, with decisions answered on device.
+/// app://local/ so its ES modules load, with decisions answered on device or, for Jev, by native code
+/// that holds the API key.
 struct GameView: UIViewRepresentable {
+    let initialPlayer: Player
+
     func makeUIView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
         config.setURLSchemeHandler(BundleSchemeHandler(), forURLScheme: "app")
         config.userContentController.addScriptMessageHandler(DecideHandler(), contentWorld: .page, name: "decide")
+        config.userContentController.addScriptMessageHandler(JevHandler(), contentWorld: .page, name: "jev")
         config.userContentController.add(StatusHandler(), name: "status")
         // Let the game's Web Audio music start without waiting for a tap.
         config.mediaTypesRequiringUserActionForPlayback = []
@@ -16,7 +20,7 @@ struct GameView: UIViewRepresentable {
         webView.backgroundColor = .black
         webView.scrollView.backgroundColor = .black
         webView.isInspectable = true
-        webView.load(URLRequest(url: URL(string: "app://local/index.html")!))
+        webView.load(URLRequest(url: URL(string: "app://local/index.html?model=\(initialPlayer.rawValue)")!))
         WebViewHolder.shared.webView = webView
         return webView
     }
@@ -30,37 +34,67 @@ final class WebViewHolder {
     static let shared = WebViewHolder()
     weak var webView: WKWebView?
 
-    /// decisionpacman://control?mode=ai|human&paused=0|1&speed=<x>&restart=1 calls the page's control functions.
+    /// Tells the page which player to use.
+    func setPlayer(_ player: Player) {
+        webView?.evaluateJavaScript("window.__pacman && window.__pacman.setModel('\(player.rawValue)')")
+    }
+
+    /// decisionpacman://control?model=finetuned|phi4-mini|jev&mode=ai|human&paused=0|1&speed=<x>&restart=1
+    /// switches the player and calls the page's control functions.
     func handle(url: URL) {
-        guard url.host == "control", let webView,
+        guard url.scheme == "decisionpacman", url.host == "control",
               let items = URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems else { return }
         for item in items {
             guard let value = item.value else { continue }
             var js: String?
             switch item.name {
+            case "model": if let player = Player(rawValue: value) { PlayerStore.shared.select(player) }
             case "mode" where value == "ai" || value == "human": js = "window.__pacman.setMode('\(value)')"
             case "paused": js = "window.__pacman.setPaused(\(value == "1"))"
             case "speed": if let x = Double(value), x > 0, x <= 2 { js = "window.__pacman.setSpeed(\(x))" }
             case "restart" where value == "1": js = "window.__pacman.restart()"
             default: break
             }
-            if let js { webView.evaluateJavaScript(js) }
+            if let js { webView?.evaluateJavaScript(js) }
         }
     }
 }
 
-/// Answers the page's `window.webkit.messageHandlers.decide.postMessage({prompt, options})`.
+/// Answers the page's on-device requests, `window.webkit.messageHandlers.decide.postMessage(...)`:
+/// {player, prompt, options} for the fine-tuned decision model, {player, prompt, grammar, keys} for a chat model.
 final class DecideHandler: NSObject, WKScriptMessageHandlerWithReply {
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage,
                                replyHandler: @escaping @MainActor @Sendable (Any?, String?) -> Void) {
-        guard let body = message.body as? [String: Any], let prompt = body["prompt"] as? String,
-              let options = (body["options"] as? NSNumber)?.intValue, options >= 2 else {
+        let respond: @Sendable ([String: Any]) -> Void = { result in
+            let payload = NSDictionary(dictionary: result)
+            Task { @MainActor in replyHandler(payload, nil) }
+        }
+        guard let body = message.body as? [String: Any], let prompt = body["prompt"] as? String else {
+            return respond(["error": "bad request"])
+        }
+        let player = (body["player"] as? String).flatMap(Player.init(rawValue:)) ?? .finetuned
+        if let grammar = body["grammar"] as? String, let keys = body["keys"] as? [String], keys.count >= 2 {
+            EngineHost.shared.generate(player: player, prompt: prompt, grammar: grammar, keys: keys, reply: respond)
+        } else if let options = (body["options"] as? NSNumber)?.intValue, options >= 2 {
+            EngineHost.shared.decide(player: player, prompt: prompt, options: options, reply: respond)
+        } else {
+            respond(["error": "bad request"])
+        }
+    }
+}
+
+/// Forwards the page's Jev requests, `window.webkit.messageHandlers.jev.postMessage({body})`, to the hosted API.
+final class JevHandler: NSObject, WKScriptMessageHandlerWithReply {
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage,
+                               replyHandler: @escaping @MainActor @Sendable (Any?, String?) -> Void) {
+        guard let body = (message.body as? [String: Any])?["body"] as? String else {
             replyHandler(["error": "bad request"], nil)
             return
         }
-        EngineHost.shared.decide(prompt: prompt, options: options) { result in
+        Task {
+            let result = await JevClient.send(body: body)
             let payload = NSDictionary(dictionary: result)
-            Task { @MainActor in replyHandler(payload, nil) }
+            await MainActor.run { replyHandler(payload, nil) }
         }
     }
 }
@@ -72,6 +106,8 @@ final class StatusHandler: NSObject, WKScriptMessageHandler {
         // Sustained inference can heat the device, which slows decisions; record it next to the latency.
         let thermal = ["nominal", "fair", "serious", "critical"]
         status["thermal"] = thermal[min(ProcessInfo.processInfo.thermalState.rawValue, thermal.count - 1)]
+        // The native side of the active player: model file and load state (never the Jev key).
+        status["engine"] = EngineHost.shared.status.dictionary
         guard JSONSerialization.isValidJSONObject(status),
               let data = try? JSONSerialization.data(withJSONObject: status, options: [.sortedKeys]) else { return }
         try? data.write(to: EngineHost.documents.appendingPathComponent("game_status.json"), options: .atomic)
