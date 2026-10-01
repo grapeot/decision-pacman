@@ -9,6 +9,7 @@ This document records how we chose the in-game model, the fine-tuning target, an
 - **Labels: a search oracle, not an LLM.** An agent that rolls the game engine forward 5 seconds for each option survived every 5-minute evaluation game and averaged 1,109 pellets, at 5 ms of local CPU per decision. Qwen3.8-27B looked strong on the synthetic probe (0.97), but as a player it lost all three lives within 39 to 93 seconds in 5-minute games.
 - **Fine-tuning works.** A 0.8B model fine-tuned on 31,585 oracle-labeled states (`pacman-0.8b`) averaged 456 pellets and 94 s per game at 63 ms per decision. That is 6.6 times off-the-shelf `tev1:0.8b` at the same speed, 3 times `tev1:4b`, and more than twice the scripted greedy rule. The oracle it learned from still averages 1,109.
 - **Hosted Jev sits between `tev1:4b` and the greedy rule.** Through TypeSafe's API, Jev 1.13.0 averaged 178 pellets and 52 s per game at 115 ms per decision, and agreed with the oracle on 39.9% of held-out states. The fine-tuned 0.8B model beats it on both.
+- **A general LLM with lookahead beats the search oracle.** Qwen3.8-27B, shown one 5-second simulated future per option, averaged 1,396 pellets and reached level 6 in all 10 games, against 1,109 for `oracle-5s`, which scores the same rollouts with a hand-written formula. Without the lookahead, thinking took Qwen from 301 to 531 pellets, but it still lost all its lives within about two minutes.
 - **State representation matters more than model size.** Compact per-direction facts beat a full ASCII board in both latency and decision quality. Quantization and prefix caching did not reduce latency.
 
 The probe uses synthetic scenarios with one clearly correct move each. It measures latency, output reliability, and basic judgment. It does not measure how well a model plays. Experiments 8 to 10 measure play in the game itself and carry more weight.
@@ -203,6 +204,26 @@ Jev is served at `https://api.typesafe.ai/v1/systemone` with the same request an
 **Play.** Per game, Jev ate 208, 173, 165, 198, 125, 203, 103, 231, 193, and 179 pellets, and lost all three lives in every game. It plays better than `tev1:4b` (148) and slightly worse than the greedy rule (201).
 
 **Tokens.** The same state costs about 605 input tokens on Jev against about 380 on the local models. A trivial request costs 325, so the hosted service adds roughly 300 tokens of its own per call. The 10 games used 2.05 million input tokens over 3,368 decisions.
+
+### 13. Qwen3.8-27B with thinking, and with lookahead
+
+Two ways to give the general model more to work with, both in lockstep (the game waits for each answer), 1x speed, 5-minute cap, features encoder.
+
+- **Thinking** (`teacher-think`): the same prompt as section 9, with thinking on.
+- **Lookahead** (`teacher-peek5s`, thinking off): for each option, the engine plays that option and then greedy moves for 5 s, exactly as the oracle's rollout does. The prompt adds the outcome per option as facts: seconds until death (or none), pellets, power pellets, ghosts eaten, and points. The model makes the choice.
+
+| Player | Seeds | Mean pellets | Mean score | Mean survival | Decision p50 | Failed answers |
+|---|---|---|---|---|---|---|
+| Qwen, thinking off (section 10) | 100-102 | 301 | - | 69 s | - | - |
+| Qwen, thinking on | 100-102 | 531 | 7,217 | 114 s | 2.4 s (p90 8.6 s) | 34 of 2,167 |
+| `oracle-5s` (realtime) | 100-109 | 1,109 | 19,789 | 300 s (cap) | 5 ms | - |
+| **Qwen, lookahead** | 100-109 | **1,396** | **22,054** | 299 s | 309 ms | 11 of 15,668 |
+
+Per game, Qwen with lookahead ate 1,457, 1,372, 1,364, 1,321, 1,427, 1,412, 1,363, 1,391, 1,420, and 1,431 pellets, and every game reached level 6. Nine games reached the cap; seed 102 lost its last life at 292 s. Failed answers fall back to the previous intent.
+
+Both players see the same rollouts. The oracle reduces each to one number (points, minus a large penalty for dying, minus the distance to the nearest pellet) and takes the highest. The model reads the outcomes and chooses. That it does better says the hand-written value function is the oracle's weak part. Which trade-offs the model makes differently has not been analyzed.
+
+Thinking alone helps (301 to 531 pellets) but costs about 9 times the latency, and the model still misjudges danger from the encoded facts alone.
 
 ## Conclusions
 

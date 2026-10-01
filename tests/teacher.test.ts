@@ -36,3 +36,16 @@ describe("teacher prompt", () => {
     for (const k of enc.keys) expect(prompt).toContain(`- ${k}`);
   });
 });
+
+describe("teacherPrompt with lookahead", () => {
+  it("adds one simulated outcome per option", () => {
+    const s = createGame(1);
+    while (s.phase !== "playing") step(s);
+    const enc = ENCODERS.features.encode(s, findDecisionPoint(s));
+    const outcomes = Object.fromEntries(enc.keys.map((k) => [k, { dies_after_s: null, pellets: 3, power_pellets: 0, ghosts_eaten: 0, points: 30 }]));
+    const prompt = teacherPrompt(enc, { seconds: 5, outcomes });
+    expect(prompt).toContain("Lookahead:");
+    expect(prompt).toContain(JSON.stringify(outcomes));
+    expect(teacherPrompt(enc)).not.toContain("Lookahead:");
+  });
+});
