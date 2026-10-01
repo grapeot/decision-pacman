@@ -4,6 +4,13 @@
 //   npm run gen-data -- --games 20 --seed 1000                      # oracle plays and labels
 //   npm run gen-data -- --player random --games 20 --seed 2000      # random play, oracle labels
 //   npm run gen-data -- --player teacher --labeler teacher --seconds 30 --seed 1000
+//   npm run gen-data -- --player oracle-5s --labeler teacher-peek5s --also-encode features-peek5s --seed 1000
+//
+// Players are deterministic for a seed, so a run with the same player and seeds
+// visits the same states whatever the labeler. That is how the same states get
+// labels from a different teacher. --also-encode stores more encodings of each
+// state (under "alt"), for students that read a different input. A teacher
+// answers each distinct prompt once per run; repeats are marked label_cached.
 //
 // The game waits for answers (lockstep clock). Train on seeds 1000 and up,
 // validate on 900-999, and keep 100-199 for evaluation only.
@@ -22,6 +29,7 @@ const { values: args } = parseArgs({
     player: { type: "string", default: "oracle-5s" },
     labeler: { type: "string", default: "oracle-5s" },
     encoder: { type: "string", default: "features" },
+    "also-encode": { type: "string", default: "" },
     games: { type: "string", default: "1" },
     seed: { type: "string", default: "1000" },
     seconds: { type: "string", default: "180" },
@@ -34,7 +42,7 @@ const EVAL_SEEDS = { min: 100, max: 199 };
 export const SCHEMA = "decision-pacman/teacher-v1";
 
 async function main() {
-  const env = policyEnvFromProcess();
+  const env = { ...policyEnvFromProcess(), teacherCache: new Map() };
   const seed0 = Number(args.seed);
   const games = Number(args.games);
   if (seed0 <= EVAL_SEEDS.max && seed0 + games - 1 >= EVAL_SEEDS.min) {
@@ -42,6 +50,11 @@ async function main() {
   }
   const encoder = ENCODERS[args.encoder!];
   if (!encoder) throw new Error(`unknown encoder ${args.encoder}`);
+  const alsoEncode = args["also-encode"]!.split(",").filter(Boolean).map((name) => {
+    const e = ENCODERS[name];
+    if (!e) throw new Error(`unknown encoder ${name}`);
+    return e;
+  });
 
   // Include the encoder and pid so runs started in the same millisecond never share a directory.
   const tag = `${new Date().toISOString().replace(/[:.]/g, "-")}_${args.player}_${args.labeler}_${args.encoder}_s${seed0}_p${process.pid}`.replace(/[^\w.-]/g, "_");
@@ -52,6 +65,7 @@ async function main() {
 
   let labeled = 0;
   let unlabeled = 0;
+  let cachedLabels = 0;
   const labelLatency: number[] = [];
   const labelCounts: Record<string, number> = {};
   const errors: string[] = [];
@@ -67,18 +81,20 @@ async function main() {
       policy: player,
       labeler,
       encoder,
+      alsoEncode,
       clock: "lockstep",
       speed: Number(args.speed),
       maxSeconds: Number(args.seconds),
       onDecision: (ev) => {
-        const label = ev.label as (PolicyDecision & { reason?: string }) | null | undefined;
+        const label = ev.label as (PolicyDecision & { reason?: string; cached?: boolean }) | null | undefined;
         if (!label) {
           unlabeled++;
           if (ev.error) errors.push(ev.error);
           return;
         }
         labeled++;
-        labelLatency.push(label.latencyMs);
+        if (label.cached) cachedLabels++;
+        else labelLatency.push(label.latencyMs);
         labelCounts[label.choice] = (labelCounts[label.choice] ?? 0) + 1;
         appendFileSync(
           dataPath,
@@ -94,10 +110,18 @@ async function main() {
             state: ev.enc.state,
             instructions: ev.enc.instructions,
             criteria: ev.enc.criteria,
+            ...(ev.alt
+              ? {
+                  alt: Object.fromEntries(
+                    Object.entries(ev.alt).map(([name, e]) => [name, { state: e.state, instructions: e.instructions, criteria: e.criteria }]),
+                  ),
+                }
+              : {}),
             label: label.choice,
             values: label.values ?? null,
             reason: label.reason ?? null,
             label_latency_ms: Math.round(label.latencyMs),
+            ...(label.cached ? { label_cached: true } : {}),
             player_choice: ev.decision?.choice ?? null,
           }) + "\n",
         );
@@ -120,6 +144,8 @@ async function main() {
     gameSeconds: summaries.reduce((a, s) => a + s.secondsPlayed, 0),
     labeled,
     unlabeled,
+    cachedLabels,
+    labelRequestsPerWallSecond: Math.round(((labeled - cachedLabels) / Math.max(1, (Date.now() - started) / 1000)) * 100) / 100,
     labelsPerWallSecond: Math.round((labeled / Math.max(1, (Date.now() - started) / 1000)) * 100) / 100,
     labelLatencyP50: Math.round(percentile(labelLatency, 0.5)),
     labelLatencyP90: Math.round(percentile(labelLatency, 0.9)),

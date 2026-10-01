@@ -1,12 +1,14 @@
 import { greedyPolicy, randomPolicy, systemOnePolicy, type Policy } from "./policies.ts";
 import { oraclePolicy } from "./oracle.ts";
 import { llmPolicy } from "./llm.ts";
-import { teacherPolicy } from "./teacher.ts";
+import { teacherPolicy, type TeacherDecision } from "./teacher.ts";
 
 export interface PolicyEnv {
   decisionBaseUrl: string;
   teacherBaseUrl?: string;
   teacherModel?: string;
+  /** Shared by every teacher policy made with this env: identical prompts are asked once. */
+  teacherCache?: Map<string, TeacherDecision>;
 }
 
 /**
@@ -40,6 +42,7 @@ export function makePolicy(name: string, seed: number, env: PolicyEnv): Policy {
       model: env.teacherModel,
       think: !!teacher[1],
       peekSeconds: teacher[2] ? Number(teacher[2]) : undefined,
+      cache: env.teacherCache,
     });
   }
   return systemOnePolicy({ baseUrl: env.decisionBaseUrl, model: name });

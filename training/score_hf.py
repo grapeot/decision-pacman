@@ -23,12 +23,14 @@ def main() -> None:
     ap.add_argument("--data", default="data/v1/val")
     ap.add_argument("--n", type=int, default=50)
     ap.add_argument("--temperature", type=float, default=50.0)
+    ap.add_argument("--target", choices=["values", "label"], default="values")
+    ap.add_argument("--encoder", default=None, help="score this encoding from the record's alt field")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     tok = AutoTokenizer.from_pretrained(args.model)
     model = AutoModelForImageTextToText.from_pretrained(args.model, dtype=torch.bfloat16).to(device).eval()
-    rows = load_states(args.data, args.temperature)
+    rows = load_states(args.data, args.temperature, args.target, args.encoder)
     random.Random(0).shuffle(rows)
     out = []
     for r in rows[: args.n]:

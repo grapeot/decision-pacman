@@ -55,7 +55,13 @@ npm run gen-data -- --games 20 --seed 1000
 npm run gen-data -- --player random --games 20 --seed 2000   # other players, oracle labels
 ```
 
-A chat model on any OpenAI-compatible endpoint can play or label instead (`--player teacher --labeler teacher`, with `TEACHER_BASE_URL` and `TEACHER_MODEL` in `.env`).
+A chat model on any OpenAI-compatible endpoint can play or label instead (`--player teacher --labeler teacher`, with `TEACHER_BASE_URL` and `TEACHER_MODEL` in `.env`). Players are deterministic for a seed, so the same player and seeds with another labeler give the same states with new labels. `--also-encode features-peek5s` also stores each state in that encoding, for a student that reads it:
+
+```sh
+npm run gen-data -- --player oracle-5s --labeler teacher-peek5s --also-encode features-peek5s --games 5 --seed 1000
+python3 training/build_sft.py --data data/q1 --out data/sft_q1 --target label --smoothing 0.1
+python3 training/build_sft.py --data data/q1 --out data/sft_q1_peek --target label --smoothing 0.1 --encoder features-peek5s
+```
 
 Fine-tune a model on the labeled states (a CUDA GPU; see `training/pyproject.toml`), export it to GGUF, and score it through Ollama:
 
