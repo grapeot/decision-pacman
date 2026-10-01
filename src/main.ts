@@ -1,6 +1,7 @@
 import { AgentLoop, type DecisionRecord } from "./agent/loop.ts";
 import { DecisionApiError } from "./agent/client.ts";
 import { systemOnePolicy } from "./agent/policies.ts";
+import { llmPolicy } from "./agent/llm.ts";
 import { nativeBridge, nativePolicy } from "./agent/native.ts";
 import { GameAudio } from "./audio/player.ts";
 import { findDecisionPoint } from "./engine/decision.ts";
@@ -86,6 +87,8 @@ function restart(): void {
 // ---- agent -------------------------------------------------------------------
 function makePolicy() {
   if (bridge) return nativePolicy(bridge, ON_DEVICE_MODEL);
+  // "llm:<model>" is a plain Ollama chat model answering in constrained JSON, not a decision model.
+  if (config.model.startsWith("llm:")) return llmPolicy({ baseUrl: config.endpoint, model: config.model.slice("llm:".length) });
   return systemOnePolicy({ baseUrl: config.endpoint, model: config.model, hosted: import.meta.env.VITE_DECISION_HOSTED === "1" });
 }
 

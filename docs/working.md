@@ -123,6 +123,11 @@
 - `tev1:4b` (local Ollama, M3 Ultra), same setup: 212 pellets, 2,907 points, 68 s, p50 260 ms, 8.6% stale, 578 tokens. Features only: 148 pellets, 202 ms, 368 tokens.
 - The input knob works for a closed model, but its value depends on the model: +43% for `tev1:4b`, about +220% for Jev, about +360% for Qwen (lockstep). Jev with lookahead stays below `oracle-5s` (1,109), which scores the same rollouts with a fixed formula.
 
+### 2026-09-30 (browser recording of a plain LLM)
+
+- The browser accepts `?model=llm:<ollama-model>` and plays with the plain chat policy through the dev proxy.
+- Recorded `docs/media/demo_qwen35_4b.mp4` (30 s, seed 100, `llm:qwen3.5:4b`): 1,370 points, 109 pellets, no lives lost, about 260 ms per decision.
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.

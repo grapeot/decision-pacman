@@ -194,6 +194,7 @@ Per game, `pacman-0.8b` ate 239, 400, 417, 649, 482, 683, 587, 420, 240, and 446
 | `docs/media/demo_tev1_08b.mp4` | `tev1:0.8b` | 710 | 71 | 2 |
 | `docs/media/demo_tev1_4b.mp4` | `tev1:4b` | 1,250 | 101 | 1 |
 | `docs/media/demo_jev.mp4` | Jev 1.13.0 (hosted) | 900 | 86 | 1 |
+| `docs/media/demo_qwen35_4b.mp4` | `llm:qwen3.5:4b` (plain chat model, JSON) | 1,370 | 109 | 0 |
 | `docs/media/demo_pacman_08b.mp4` | `pacman-0.8b` | 2,660 | 170 | 0 |
 
 In the `tev1:0.8b` clip, the option probabilities stay close to uniform (confidence 0.00-0.04).
