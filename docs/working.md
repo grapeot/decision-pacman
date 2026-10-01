@@ -128,6 +128,13 @@
 - The browser accepts `?model=llm:<ollama-model>` and plays with the plain chat policy through the dev proxy.
 - Recorded `docs/media/demo_qwen35_4b.mp4` (30 s, seed 100, `llm:qwen3.5:4b`): 1,370 points, 109 pellets, no lives lost, about 260 ms per decision.
 
+### 2026-09-30 (latency breakdown on M3 Ultra and RTX 5090)
+
+- Added `scripts/bench_prefill_decode.py`: times prefill and decode separately through Ollama or a llama.cpp server, with a unique tag per request so no prompt cache is reused.
+- M3 Ultra, Ollama: `tev1:4b` prefill 178 ms for 383 tokens (0.47 ms per token), 12.0 ms per further output token; `pacman-0.8b` 41 ms and 5.5 ms.
+- RTX 5090 (borrowed through the GPU lease and restored), CUDA llama.cpp: `tev1:4b` prefill 50 ms through `llama-server`, 25 ms in `llama-bench`, 4.5-4.8 ms per output token; `pacman-0.8b` 17 ms and 11 ms, 2.0-2.1 ms.
+- A first run without the per-request tag reused prompt caches across rounds and reported 19 ms prefill for `tev1:4b`. Another early run measured 457 ms end to end while Ollama was swapping models. Both were discarded.
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.

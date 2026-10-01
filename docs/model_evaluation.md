@@ -340,6 +340,26 @@ Per game, Jev with lookahead ate 432, 730, 481, 418, 972, 966, 301, 671, 461, an
 
 **Caveats.** Qwen's numbers are lockstep, where the game waits for each answer; Jev's and `tev1:4b`'s are realtime. The rollouts run inside the encoder, before the request is timed, so their 5-10 ms of CPU is not charged to game time as the oracle's is. One run per seed; Jev's games vary from 234 to 972 pellets. `tev1:4b` ran on local Ollama with no other games running.
 
+### 17. Where the time goes: prefill, decode, and hardware
+
+`scripts/bench_prefill_decode.py` sends the 20 rendered game prompts in `ios/DecisionPacman/bench_prompts.json` (about 383 tokens each) with 1 output token, as a decision model needs, and with 7, as a chat model writing a short JSON answer needs. Every request starts with a unique tag so no prompt cache is reused. The same Q8_0 GGUF files ran on both machines: Ollama 0.35.0 on the Apple M3 Ultra, and a CUDA build of llama.cpp (`llama-server` with default settings, 8 slots) on one RTX 5090. `llama-bench` (prompt 384, generate 7) gives the 5090's compute-only floor. Medians; prefill and decode are the servers' own timings.
+
+| | M3 Ultra, Ollama | RTX 5090, llama-server | RTX 5090, llama-bench |
+|---|---|---|---|
+| `tev1:4b` prefill (383 tokens) | 178 ms | 50 ms | 25 ms |
+| `tev1:4b` each further output token | 12.0 ms | 4.8 ms | 4.5 ms |
+| `tev1:4b` end to end, 1 output token | 197 ms | 124 ms | - |
+| `tev1:4b` 8 concurrent requests | 5.4 per s | 7.3 per s | - |
+| `pacman-0.8b` prefill | 41 ms | 17 ms | 11 ms |
+| `pacman-0.8b` each further output token | 5.5 ms | 2.1 ms | 2.0 ms |
+| `pacman-0.8b` end to end, 1 output token | 54 ms | 47 ms | - |
+| `pacman-0.8b` 8 concurrent requests | 21 per s | 26 per s | - |
+
+- A decision is prefill-bound. Reading one answer from the logits instead of writing a six-token JSON answer saves six decode steps: about 72 ms on the M3 Ultra and 27 ms on the 5090. This matches section 14, where `qwen3.5:4b` writing JSON took 267 ms against 202 ms for `tev1:4b` reading logits.
+- The rest is reading the input, which depends on input length and hardware, not on the output format. The 5090 reads a game state 7 times faster than the M3 Ultra for the 4B model and 3.7 times faster for the 0.8B model.
+- `llama-server` with default settings adds about 70 ms (4B) and 30 ms (0.8B) on top of prefill, and it barely batched the 8 concurrent requests. Its end-to-end numbers reflect an untuned server, not the hardware.
+- Jev's 115 ms over the internet, with about 605 input tokens, fits a datacenter GPU's prefill of a few tens of milliseconds plus the network round trip.
+
 ## Conclusions
 
 1. Use `tev1:4b` for the real-time demo. At about 160 ms, a decision is shorter than the typical 400 ms to 1.2 s Pac-Man needs to reach the next junction at arcade speed.
