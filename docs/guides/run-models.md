@@ -1,0 +1,156 @@
+# Run models
+
+A model can play the game in three ways: as a local decision model over Ollama's `/v1/systemone` API, as a plain chat model through Ollama's `/api/chat` (policy `llm:<model>`), or as TypeSafe's hosted decision model Jev. The scripted baselines `random` and `greedy` need no model.
+
+Requirements: Node 20+ with npm, and Ollama. Decision models need Ollama 0.35+, which added `/v1/systemone`.
+
+Results are in [results.md](../results.md). The evaluation protocol is in [evaluate.md](evaluate.md).
+
+## Local decision models (Ollama /v1/systemone)
+
+Decision models served on Ollama's `/v1/systemone` endpoint output a probability for every option, read directly from option-letter logits.
+
+Pull the public decision models:
+```bash
+ollama pull tev1:4b
+ollama pull tev1:0.8b
+```
+
+Install dependencies and start the local development server:
+```bash
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173`. To select a specific model, specify the `model` URL parameter:
+```
+http://localhost:5173/?model=tev1:0.8b
+```
+
+The development server forwards `/decide` to `VITE_DECISION_BASE_URL` (default `http://localhost:11434`), avoiding browser CORS restrictions. To point the server to another endpoint, such as ollaya on port 11435, set the variable when starting the server:
+```bash
+VITE_DECISION_BASE_URL=http://localhost:11435 npm run dev
+```
+
+To run headless games from the command line:
+```bash
+npm run headless -- --policy tev1:4b --games 3 --seed 100
+```
+
+The headless runner writes outputs to `runs/<tag>/`:
+- `decisions.jsonl`: One record per decision.
+- `summary.json`: Aggregate statistics.
+
+### Fine-tuned models
+
+After training and importing fine-tuned models such as `pacman-0.8b` or `pacman-0.8b-qwen` into Ollama (see [distill.md](distill.md)), run them by model name:
+```bash
+npm run headless -- --policy pacman-0.8b-qwen --games 3 --seed 100
+```
+In the browser, open `http://localhost:5173/?model=pacman-0.8b-qwen`. Model weights for `pacman-0.8b` and `pacman-0.8b-qwen` are not published, and training data is not included in the repository. Train them using the instructions in [distill.md](distill.md).
+
+## Plain chat models (llm:<model>)
+
+Plain chat models run through Ollama's `/api/chat` endpoint using the policy format `llm:<ollama-model>`. The agent supplies the same facts as decision models, applies a JSON schema restricting `move` to legal options, turns thinking off, sets temperature to 0, and derives probabilities from token logprobs. Ollama 0.35.0 provides no logprobs for `gemma4:e4b`. The adapter code is in `src/agent/llm.ts`.
+
+Pull a chat model:
+```bash
+ollama pull phi4-mini
+```
+The other chat models on the ladder are `gemma4:e4b` and `qwen3.5:4b`.
+
+In the browser, open `http://localhost:5173/?model=llm:phi4-mini`. This works when the development server points to Ollama.
+
+To run headless games:
+```bash
+npm run headless -- --policy llm:phi4-mini --games 3 --seed 100
+```
+
+## Hosted Jev
+
+Jev is TypeSafe's hosted decision model at `https://api.typesafe.ai/v1/systemone`. It uses the same request and response format as Ollama's `/v1/systemone` endpoint. The model name is `jev-latest` (it answered as `jev-1.13.0`).
+
+Take the API key from your password manager and set it as `TYPESAFE_API_KEY`. The hosted API rejects Ollama's `keep_alive` field, so hosted requests omit it.
+
+To run headless games:
+```bash
+export TYPESAFE_API_KEY="..."   # paste from your password manager
+npm run headless -- --policy jev --games 3 --seed 100
+```
+The headless runner also reads a local `.env` (gitignored; `.env.example` lists the variable), but exporting the key in the shell keeps it out of files. The headless policy also accepts `JEV_BASE_URL` and `JEV_MODEL`.
+
+To run in the browser, export the key in your shell before starting the development server:
+```bash
+export TYPESAFE_API_KEY="..."   # paste from your password manager
+VITE_DECISION_BASE_URL=https://api.typesafe.ai npm run dev
+```
+Open `http://localhost:5173/?model=jev-latest`. The development server reads the key from the process environment (not `.env`) and adds the key to proxied requests. The key never reaches the browser page.
+
+## Baselines and labeling players
+
+The repository provides scripted baselines, engine rollouts, and teacher policies:
+- `random`: Selects uniformly at random among legal options.
+- `greedy`: Flees nearby ghosts, chases edible ghosts, and otherwise heads for the nearest pellet.
+- `oracle-5s` (and variants `oracle-3s`, `oracle-8s`): For each option, copies the game state and simulates 5 seconds forward with greedy play at later junctions, scoring the outcome. Defined in `src/agent/oracle.ts`, it requires about 5 ms CPU per decision. Because it executes engine rollouts at decision time, it is a data labeling tool and record, not a comparable ladder player.
+- Chat teacher policies (`teacher`, `teacher-think`, `teacher-peek5s`): Connect to an OpenAI-compatible endpoint specified by `TEACHER_BASE_URL` and `TEACHER_MODEL` in `.env`. The `teacher-peek5s` policy adds a simulated 5-second engine rollout per option to the prompt (lookahead); it is used to generate training labels.
+
+## Encoders
+
+Encoders determine the state representation supplied to the player. Set an encoder with `--encoder` in headless runs or `?encoder=` in the browser:
+- `features` (default): Compact JSON containing per-option facts (BFS distance to nearest ghost through that exit and whether it is frightened or approaching, pellets within N steps, distance to nearest power pellet, dead end within N steps) and global facts (frightened time left, pellets left, lives). It reports facts, never verdicts such as "safe" or a recommended move.
+- `ascii-window`: A board crop around Pac-Man, for comparison only.
+- `ascii-full`: The whole board with row and column numbers, for comparison only.
+- `features-peek5s`: Extends `features` with the outcome of a 5-second engine rollout per option (seconds until death or null, pellets, power pellets, ghosts eaten, points). This encoder is lookahead. Use it for labels and records, never for a comparison between players.
+
+## Browser controls
+
+The side panel switches the model, the encoder, and the game speed (0.25x to 1.25x), or hands control to the keyboard (arrow keys, WASD, or swipes; Space pauses, R restarts, M mutes). The same settings can be set in the URL:
+
+| Parameter | Meaning |
+|---|---|
+| `model` | Model or policy name (default `tev1:4b`) |
+| `encoder` | Encoder name (default `features`) |
+| `seed` | Game seed (random if omitted) |
+| `speed` | Game speed multiplier (default 1) |
+| `mode` | `ai` or `human` |
+| `wait` | `1` turns on the Wait switch |
+
+### Wait for the model
+
+The "Wait" checkbox (or `?wait=1`) is for slow models. The model is asked about the next junction while the game keeps moving. If Pac-Man is about to reach that junction before the answer arrives, the whole game, ghosts and timers included, holds until it does. A slow model is then judged on its choices, not its speed. With Wait on, latency no longer costs game time, so the play you see is not comparable with the realtime ladder in [results.md](../results.md). The headless runner has no Wait switch; its `--clock lockstep` waits for every answer instead.
+
+
+To record a 30-second gameplay video clip:
+```bash
+npm run record -- --model tev1:4b --seconds 30 --seed 100 --out docs/media/demo.mp4
+```
+The recording script requires Playwright's Chromium and ffmpeg. It accepts `--model`, `--encoder`, `--seed`, `--speed`, `--seconds`, and `--out`.
+
+## Headless runner flags
+
+Run games from the command line using `scripts/run_headless.ts`:
+```bash
+npm run headless -- [flags]
+```
+
+The runner logs per-game results, prints an aggregate summary line (`meanPellets`, `meanScore`, `meanSeconds`, `meanLatencyP50`, `staleRate`), and writes `runs/<tag>/decisions.jsonl` and `runs/<tag>/summary.json`. The runner reads `.env`.
+
+| Flag | Default | Description |
+|---|---|---|
+| `--policy` | `tev1:4b` | Player policy (`tev1:4b`, `tev1:0.8b`, `random`, `greedy`, `jev`, `llm:<model>`, `oracle-5s`, `teacher`, etc.) |
+| `--base-url` | `VITE_DECISION_BASE_URL`, else `http://localhost:11434` | Decision endpoint for model policies |
+| `--encoder` | `features` | State encoder (`features`, `ascii-window`, `ascii-full`, `features-peek5s`) |
+| `--clock` | `realtime` | Clock mode: `realtime` charges decision latency in elapsed ticks; `lockstep` pauses the game for each answer |
+| `--games` | `3` | Number of games to run |
+| `--seed` | `100` | Starting seed (game `i` uses `seed + i`) |
+| `--speed` | `1` | Simulation speed multiplier |
+| `--max-seconds` | `180` | Cap on game seconds per game |
+| `--out` | `runs` | Output directory for run logs |
+
+To execute the standard ladder benchmark (10 games, evaluation seeds 100-109, 5-minute cap per game):
+```bash
+npm run headless -- --policy tev1:4b --games 10 --seed 100 --max-seconds 300
+```
+For lockstep execution, pass `--clock lockstep`.
+
+For full ladder scores and latency benchmarks, see [../results.md](../results.md). For evaluation workflows, see [evaluate.md](evaluate.md).
