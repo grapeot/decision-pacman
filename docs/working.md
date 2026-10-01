@@ -116,6 +116,13 @@
 - Same-day rerun of the Pac-Man probe, accuracy (probability on the correct move): `tev1:4b` 0.88 (0.64), `tev1:0.8b` 0.42 (0.40), `pacman-0.8b` 0.93 (0.52). The probe repeats its seed-42 scenarios, so its latency is not reported here; earlier runs of the same states could be cached.
 - JevBench's published per-item results for Jev 1.13.0 give 0.89 on the same 194 items.
 
+### 2026-09-30 (lookahead for a closed model)
+
+- Added the `features-peek5s` encoder: the features encoding plus each option's `peek()` outcome under `lookahead_5s`, and one paragraph of instructions explaining it. Any `/v1/systemone` model can now receive the lookahead Qwen saw in its prompt.
+- Jev (TypeSafe's hosted API), seeds 100-109, realtime, 1x, 5-minute cap: 567 pellets, 9,150 points, 175 s, mean level 2.5, p50 111 ms, 2.2% stale, 865 input tokens per decision. Features only: 178 pellets, 52 s, 609 tokens. Every game still lost all three lives. 9.72 million input tokens, about $0.41.
+- `tev1:4b` (local Ollama, M3 Ultra), same setup: 212 pellets, 2,907 points, 68 s, p50 260 ms, 8.6% stale, 578 tokens. Features only: 148 pellets, 202 ms, 368 tokens.
+- The input knob works for a closed model, but its value depends on the model: +43% for `tev1:4b`, about +220% for Jev, about +360% for Qwen (lockstep). Jev with lookahead stays below `oracle-5s` (1,109), which scores the same rollouts with a fixed formula.
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.
