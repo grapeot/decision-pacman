@@ -173,6 +173,15 @@
 - Added a "Wait" switch (checkbox, `?wait=1`, `decisionpacman://control?wait=1`, `window.__pacman.setWaitForModel`). The model is asked about the very next junction while the game keeps moving; if Pac-Man is about to reach that junction before the answer arrives, the whole game (ghosts and timers included) holds until it does. A slow model is then judged on its choices, not its speed. The status report includes `waitForModel`.
 - On the iPhone 16 Pro Max, phi4-mini at 1x with Wait on: 26 decisions, none late, about 2.2 s each; the game held in the windows where it waited (0-11 ticks per 2 s instead of 60). Without Wait at 0.25x, 8 of 18 decisions had been late.
 
+### 2026-10-01 (documentation for readers)
+
+- Rewrote README results first (the apples-to-apples ladder: features input, no lookahead, realtime; lockstep rows listed separately; clips; quickstart; a reproduce-each-result index).
+- Added `docs/results.md` as the single place for current numbers and caveats.
+- Added `docs/guides/` (run-models, evaluate, distill, iphone), including the 0.25x speed and the Wait switch.
+- Updated the RFC summary and components to the current system and added a note to the PRD that it is the original requirements.
+- `docs/model_evaluation.md` stays the lab notebook with unchanged section numbers, plus a pointer to `results.md`.
+- Fixed stale paths and commands: `src/oracle/` and `src/ui/` in AGENTS.md (the oracle is `src/agent/oracle.ts`), and the headless command in `docs/test.md` (`--policy`, not `--model`). No code changes.
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.
