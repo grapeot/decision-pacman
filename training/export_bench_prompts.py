@@ -3,6 +3,10 @@
   python training/export_bench_prompts.py --tokenizer runs/ft_v1/merged \
       --reference runs/score_pacman_08b.json --n 20 --out ios/mac_check/bench_prompts.json
 
+The committed file's prompts came from this script; their reference probabilities were later
+replaced with the ones Ollama returns for `pacman-0.8b-qwen` (raw prompt, one output token,
+letter log-probabilities renormalized over the options), which is the model the app uses.
+
 Takes the same validation rows as score_ollama.py, renders each with the
 model's chat template exactly as served (thinking off), and attaches the
 probabilities Ollama returned for them, so a device can check its output.

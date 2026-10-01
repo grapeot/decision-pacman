@@ -111,7 +111,7 @@ ios/scripts/mac_check.sh decision pacman-0.8b-qwen-Q8_0.gguf
 ios/scripts/mac_check.sh chat "$(ollama show phi4-mini --modelfile | awk '/^FROM /{print $2}')"
 ```
 
-The decision check uses `ios/mac_check/bench_prompts.json`, whose reference probabilities were recorded from Ollama serving an earlier 0.8B fine-tune (`pacman-0.8b`). With that model's GGUF the choices should match; with `pacman-0.8b-qwen` the check still exercises the engine and its latency, but the choices may differ from the reference. The chat check uses `ios/mac_check/chat_prompts.json` (40 real game prompts with Ollama's recorded `llm:phi4-mini` answers).
+The decision check uses `ios/mac_check/bench_prompts.json`: 20 rendered game prompts with the option probabilities Ollama returns for `pacman-0.8b-qwen`. With the published GGUF, the app's Swift engine on an M3 Ultra chose the same option on 60 of 60 runs (20 prompts, 3 rounds), with a largest probability difference of 0.0004, at 34 ms per decision.
 
 Measured on a Mac (M3 Ultra, llama.cpp b11298, Metal):
 - Fine-tuned 0.8B Q8_0 (the earlier `pacman-0.8b`): same choice as Ollama on 60 of 60, max probability difference 0.0003, p50 36 ms.

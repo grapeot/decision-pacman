@@ -193,6 +193,12 @@
 - Reframed the public docs around off-the-shelf models against the 0.8B distilled from the LLM teacher. The rollout search `oracle-5s` and the student trained on it, `pacman-0.8b`, moved to an FAQ in the README and `results.md`; `model_evaluation.md` is unchanged.
 - Recorded `docs/media/demo_pacman_08b_qwen.mp4` (browser, seed 100, 1x, 30 s, M3 Ultra under unrelated background load, load average about 20): score 3,320, 176 pellets, no lives lost. The first take opened on about 27 s of blank page while Vite optimized dependencies in a fresh checkout; the second take, with the cache warm, is the one kept.
 
+### 2026-10-01 (Mac check reference for the distilled model)
+
+- Replaced the reference probabilities in `ios/mac_check/bench_prompts.json` with those Ollama returns for `pacman-0.8b-qwen` (raw prompt, one output token, letter log-probabilities renormalized over the options). The same method reproduced the old `pacman-0.8b` references exactly (20 of 20 choices, largest difference 0.0).
+- `ios/scripts/mac_check.sh decision` with the GGUF downloaded from Hugging Face: same choice on 60 of 60, largest probability difference 0.0004, 34 ms per decision.
+- A screen recording on the iPhone 16 Pro Max showed the distilled model at a median of about 505 ms per decision with 25-28% late answers at 1x.
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.
