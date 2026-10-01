@@ -159,6 +159,11 @@
 - phi4-mini (Q4_K_M, the Ollama blob), 40 game states: 40 of 40 answers legal, 40 of 40 the same move as Ollama, probabilities equal to 4 decimals, prompt token counts equal to Ollama's on all 40. p50 168-173 ms, p90 about 200 ms: prefill p50 117 ms for about 290 tokens, 7 output tokens to reach the move, about 9.5 ms per decode step. The first answer takes about 370 ms because it builds the option-token tables.
 - Not measured on the phone yet. A rough estimate from the 0.8B (380 ms on the phone against 36 ms here) and phi4-mini's size: 1.5-2 s per decision at first, and possibly twice that once the phone heats up. Expect a high stale rate at 1x; 0.5x speed may suit a phi4-mini demo better. Memory: 2.3 GB of weights, 544 MB of cache, and 403 MB of compute buffers on the Mac.
 
+### 2026-10-01 (iPhone demo on the phone)
+
+- The fine-tuned player now loads the distilled `pacman-0.8b-qwen` (falls back to `model.gguf`). All three players see the same current-state input.
+- On the iPhone 16 Pro Max, 1x speed: the distilled 0.8B answered in about 400 ms per decision (p50 393-425 ms over the first 18 decisions); phi4-mini loaded in 4.9 s and answered in 2.2-2.9 s per decision, without memory trouble; Jev over Wi-Fi answered in about 125-155 ms with the key read from Documents.
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.
