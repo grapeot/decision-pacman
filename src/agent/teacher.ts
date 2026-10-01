@@ -23,7 +23,14 @@ export interface TeacherDecision extends PolicyDecision {
 
 export class TeacherParseError extends Error {}
 
-export function teacherPrompt(enc: EncodedDecision, peeks?: { seconds: number; outcomes: Record<string, PeekOutcome> }): string {
+export const TEACHER_ANSWER = 'Answer with only a JSON object: {"move": "<one of the options>", "reason": "<one short sentence>"}';
+
+/** The rules, the encoded state, and the options, followed by `answer`, the line that says how to reply. */
+export function teacherPrompt(
+  enc: EncodedDecision,
+  peeks?: { seconds: number; outcomes: Record<string, PeekOutcome> },
+  answer: string = TEACHER_ANSWER,
+): string {
   const state = typeof enc.state === "string" ? enc.state : JSON.stringify(enc.state);
   const options = enc.keys.map((k) => `- ${k}${enc.criteria[k] ? `: ${enc.criteria[k]}` : ""}`).join("\n");
   const lookahead = peeks
@@ -31,10 +38,7 @@ export function teacherPrompt(enc: EncodedDecision, peeks?: { seconds: number; o
       "Normal ghost moves are exact; frightened ghosts turn at random. It shows one possible future, not the only one.\n" +
       `${JSON.stringify(peeks.outcomes)}\n\n`
     : "";
-  return (
-    `${enc.instructions}\n\nState:\n${state}\n\nOptions:\n${options}\n\n${lookahead}` +
-    'Answer with only a JSON object: {"move": "<one of the options>", "reason": "<one short sentence>"}'
-  );
+  return `${enc.instructions}\n\nState:\n${state}\n\nOptions:\n${options}\n\n${lookahead}${answer}`;
 }
 
 /** Extracts {"move", "reason"} from the reply. Throws unless the move is one of the options. */
