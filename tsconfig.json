@@ -12,7 +12,8 @@
     "isolatedModules": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true
   },
-  "include": ["src", "scripts", "tests", "vite.config.ts"]
+  "include": ["src", "scripts", "tests", "site", "vite.config.ts", "vite.site.config.ts"]
 }
