@@ -39,7 +39,7 @@ final class WebViewHolder {
         webView?.evaluateJavaScript("window.__pacman && window.__pacman.setModel('\(player.rawValue)')")
     }
 
-    /// decisionpacman://control?model=finetuned|phi4-mini|jev&mode=ai|human&paused=0|1&speed=<x>&wait=0|1&restart=1
+    /// decisionpacman://control?model=finetuned|phi4-mini|qwen3.5-4b|jev&mode=ai|human&paused=0|1&speed=<x>&wait=0|1&restart=1
     /// switches the player and calls the page's control functions.
     func handle(url: URL) {
         guard url.scheme == "decisionpacman", url.host == "control",

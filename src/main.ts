@@ -93,7 +93,8 @@ function restart(): void {
 
 // ---- agent -------------------------------------------------------------------
 function appPolicy(player: PlayerId) {
-  if (player === "phi4-mini") return nativeChatPolicy(bridge!, playerLabel(player), player);
+  if (player === "phi4-mini") return nativeChatPolicy(bridge!, playerLabel(player), player, "phi4");
+  if (player === "qwen3.5-4b") return nativeChatPolicy(bridge!, playerLabel(player), player, "qwen3.5");
   if (player === "jev") {
     const jev = nativeJevPolicy({ model: "jev-latest" });
     if (jev) return jev;

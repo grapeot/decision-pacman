@@ -1,7 +1,7 @@
 // The players of the iOS app. The ids are shared with ios/DecisionPacman/Players.swift,
 // the `decisionpacman://control?model=` route, and the page's `?model=` parameter.
 
-export type PlayerId = "finetuned" | "phi4-mini" | "jev";
+export type PlayerId = "finetuned" | "phi4-mini" | "qwen3.5-4b" | "jev";
 
 export interface PlayerInfo {
   label: string;
@@ -11,6 +11,7 @@ export interface PlayerInfo {
 export const PLAYERS: Record<PlayerId, PlayerInfo> = {
   finetuned: { label: "fine-tuned 0.8B", where: "on device" },
   "phi4-mini": { label: "phi4-mini 3.8B", where: "on device" },
+  "qwen3.5-4b": { label: "qwen3.5 4B", where: "on device" },
   jev: { label: "Jev", where: "cloud" },
 };
 

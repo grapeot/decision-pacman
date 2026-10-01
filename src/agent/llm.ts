@@ -47,9 +47,20 @@ export function phi4MiniPrompt(user: string): string {
   return `<|user|>${user}<|end|><|assistant|>`;
 }
 
-/** The full on-device prompt for a plain chat model: the same text `buildChatRequest` sends, in phi4-mini's template. */
-export function renderChatDecision(enc: EncodedDecision): string {
-  return phi4MiniPrompt(teacherPrompt(enc, undefined, LLM_ANSWER));
+/**
+ * One user message in Qwen3.5's chat template with thinking off, as Ollama renders `think: false`
+ * (checked against Ollama's prompt token counts and answers on 12 game states).
+ */
+export function qwen35Prompt(user: string): string {
+  return `<|im_start|>user\n${user}<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n`;
+}
+
+export type ChatTemplate = "phi4" | "qwen3.5";
+
+/** The full on-device prompt for a plain chat model: the same text `buildChatRequest` sends, in the model's template. */
+export function renderChatDecision(enc: EncodedDecision, template: ChatTemplate = "phi4"): string {
+  const user = teacherPrompt(enc, undefined, LLM_ANSWER);
+  return template === "qwen3.5" ? qwen35Prompt(user) : phi4MiniPrompt(user);
 }
 
 export function buildChatRequest(cfg: LlmConfig, enc: EncodedDecision): object {

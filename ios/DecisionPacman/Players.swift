@@ -5,6 +5,7 @@ import Foundation
 enum Player: String, CaseIterable, Identifiable, Sendable {
     case finetuned
     case phi4Mini = "phi4-mini"
+    case qwen4b = "qwen3.5-4b"
     case jev
 
     var id: String { rawValue }
@@ -13,7 +14,8 @@ enum Player: String, CaseIterable, Identifiable, Sendable {
     var shortLabel: String {
         switch self {
         case .finetuned: return "0.8B tuned"
-        case .phi4Mini: return "phi4-mini"
+        case .phi4Mini: return "phi4"
+        case .qwen4b: return "qwen 4B"
         case .jev: return "Jev"
         }
     }
@@ -22,6 +24,7 @@ enum Player: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .finetuned: return "Distilled 0.8B (Qwen 27B teacher), on device"
         case .phi4Mini: return "phi4-mini 3.8B, on device"
+        case .qwen4b: return "qwen3.5 4B, on device"
         case .jev: return "Jev, cloud"
         }
     }
@@ -36,11 +39,13 @@ enum Player: String, CaseIterable, Identifiable, Sendable {
 struct PlayerConfig: Decodable {
     var finetuned: String?
     var phi4Mini: String?
+    var qwen4b: String?
     var phi4MiniContext: UInt32?
 
     enum CodingKeys: String, CodingKey {
         case finetuned
         case phi4Mini = "phi4-mini"
+        case qwen4b = "qwen3.5-4b"
         case phi4MiniContext = "phi4-mini-context"
     }
 
@@ -58,6 +63,7 @@ struct PlayerConfig: Decodable {
         switch player {
         case .finetuned: name = finetuned ?? Self.defaultFinetuned
         case .phi4Mini: name = phi4Mini ?? "phi4-mini.gguf"
+        case .qwen4b: name = qwen4b ?? "qwen3.5-4b.gguf"
         case .jev: name = nil
         }
         return name.map { URL(fileURLWithPath: $0).lastPathComponent }

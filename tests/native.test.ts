@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DecisionApiError } from "../src/agent/client.ts";
-import { buildChatRequest, moveGrammar, phi4MiniPrompt, renderChatDecision } from "../src/agent/llm.ts";
+import { buildChatRequest, moveGrammar, phi4MiniPrompt, qwen35Prompt, renderChatDecision } from "../src/agent/llm.ts";
 import { AgentLoop } from "../src/agent/loop.ts";
 import { nativeChatPolicy, nativeJevFetch, nativePolicy, type NativeBridge } from "../src/agent/native.ts";
 import { isPlayerId, PLAYERS } from "../src/agent/players.ts";
@@ -29,6 +29,8 @@ describe("on-device chat prompt", () => {
     const req = buildChatRequest({ baseUrl: "http://localhost:11434", model: "phi4-mini" }, enc) as { messages: { content: string }[] };
     expect(renderChatDecision(enc)).toBe(`<|user|>${req.messages[0].content}<|end|><|assistant|>`);
     expect(phi4MiniPrompt("hi")).toBe("<|user|>hi<|end|><|assistant|>");
+    expect(qwen35Prompt("hi")).toBe("<|im_start|>user\nhi<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n");
+    expect(renderChatDecision(enc, "qwen3.5")).toBe(qwen35Prompt(req.messages[0].content));
   });
 
   it("builds a grammar whose only values are the options, as JSON strings", () => {
@@ -98,7 +100,7 @@ describe("Jev through the native bridge", () => {
 
 describe("players", () => {
   it("knows the three app players and nothing else", () => {
-    expect(Object.keys(PLAYERS)).toEqual(["finetuned", "phi4-mini", "jev"]);
+    expect(Object.keys(PLAYERS)).toEqual(["finetuned", "phi4-mini", "qwen3.5-4b", "jev"]);
     expect(isPlayerId("jev")).toBe(true);
     expect(isPlayerId("toString")).toBe(false);
   });

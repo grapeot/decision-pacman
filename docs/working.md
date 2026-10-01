@@ -182,6 +182,12 @@
 - `docs/model_evaluation.md` stays the lab notebook with unchanged section numbers, plus a pointer to `results.md`.
 - Fixed stale paths and commands: `src/oracle/` and `src/ui/` in AGENTS.md (the oracle is `src/agent/oracle.ts`), and the headless command in `docs/test.md` (`--policy`, not `--model`). No code changes.
 
+### 2026-10-01 (qwen3.5 4B on the phone, and small chat models)
+
+- Screened small plain chat models in lockstep (features input, seeds 100-109, 10 games) before stopping the search: `qwen3.5:0.8b` 35 pellets, `gemma3:1b` 45, `llama3.2:1b` 117, `qwen3:1.7b` 121, against Jev 161 in lockstep. None of the 1B-class models reached Jev, so the phone keeps 4B-class chat models.
+- Added a fourth iPhone player, `qwen3.5-4b`, with Qwen3.5's chat template and thinking off (`<|im_start|>user ... <|im_end|> <|im_start|>assistant <think></think>`). On 12 game states the rendered prompt matched Ollama's `think: false` rendering in token count and answer.
+- Ollama's `qwen3.5:4b` blob does not load in the app's llama.cpp (`qwen35.rope.dimension_sections has wrong array length; expected 4, got 3`). unsloth's `Qwen3.5-4B-Q4_K_M.gguf` loads. With the app's Swift engine on the M3 Ultra (`ios/scripts/mac_check.sh chat <gguf> ios/mac_check/chat_prompts_qwen.json`): 40 of 40 answers legal, prompt token counts equal to Ollama's on 40 of 40, same move as Ollama on 36 of 40 (a different GGUF), p50 182 ms, about phi4-mini's 170 ms.
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.

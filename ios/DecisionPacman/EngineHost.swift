@@ -80,7 +80,7 @@ final class EngineHost: @unchecked Sendable {
             return nil
         }
         let context = config.chatContextLength
-        let key = player == .phi4Mini ? "\(player.rawValue)/\(file)/\(context)" : "\(player.rawValue)/\(file)"
+        let key = player == .finetuned ? "\(player.rawValue)/\(file)" : "\(player.rawValue)/\(file)/\(context)"
         if key == loadedKey, engine != nil { return nil }
         unload()
         let url = Self.documents.appendingPathComponent(file)
@@ -95,7 +95,7 @@ final class EngineHost: @unchecked Sendable {
         do {
             switch player {
             case .finetuned: engine = .decision(try DecisionEngine(modelPath: url.path))
-            case .phi4Mini: engine = .chat(try ChatMoveEngine(modelPath: url.path, contextLength: context))
+            case .phi4Mini, .qwen4b: engine = .chat(try ChatMoveEngine(modelPath: url.path, contextLength: context))
             case .jev: break
             }
             loadedKey = key

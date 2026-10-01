@@ -52,9 +52,11 @@ copy() { xcrun devicectl device copy to --device "$dev" --domain-type appDataCon
   --domain-identifier io.github.grapeot.decisionpacman --source "$1" --destination "Documents/$2"; }
 copy runs/ft_q1/pacman-0.8b-qwen-q8_0.gguf pacman-0.8b-qwen.gguf   # distilled 0.8B (Q8_0, about 800 MB)
 copy "$(ollama show phi4-mini --modelfile | awk '/^FROM /{print $2}')" phi4-mini.gguf   # Q4_K_M, about 2.3 GB
+curl -L -o Qwen3.5-4B-Q4_K_M.gguf https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf
+copy Qwen3.5-4B-Q4_K_M.gguf qwen3.5-4b.gguf                                              # about 2.6 GB
 ```
 
-The fine-tuned player loads `pacman-0.8b-qwen.gguf` from Documents and falls back to `model.gguf` (the earlier oracle-trained `pacman-0.8b`). phi4-mini loads `phi4-mini.gguf`. The fine-tuned GGUF path above is the one [distill.md](distill.md) produces.
+The fine-tuned player loads `pacman-0.8b-qwen.gguf` from Documents and falls back to `model.gguf` (the earlier oracle-trained `pacman-0.8b`). phi4-mini loads `phi4-mini.gguf`, and qwen3.5 4B loads `qwen3.5-4b.gguf`. For Qwen, use a standard GGUF such as unsloth's: the file Ollama stores for `qwen3.5:4b` includes vision tensors and a `rope.dimension_sections` array of length 3, which the app's llama.cpp rejects (it expects 4). The fine-tuned GGUF path above is the one [distill.md](distill.md) produces.
 
 You can override default file names with `Documents/players.json`, for example `{"finetuned": "pacman-0.8b-v2.gguf"}`. The same file can name another phi4-mini file (`"phi4-mini"`) or set `"phi4-mini-context": 2048`. Setting context to 2048 saves about 300 MB, but changes phi4-mini's answers: with a 2048-token context it agreed with Ollama on 33 of 40 moves, whereas 4352 or 8192 gave 40 of 40.
 

@@ -5,7 +5,7 @@
 // WKScriptMessageHandlerWithReply handlers named "decide" and "jev".
 import type { EncodedDecision } from "../encoders/types.ts";
 import { DecisionApiError, type SystemOneConfig } from "./client.ts";
-import { moveGrammar, parseMove, renderChatDecision } from "./llm.ts";
+import { moveGrammar, parseMove, renderChatDecision, type ChatTemplate } from "./llm.ts";
 import type { PlayerId } from "./players.ts";
 import { systemOnePolicy, type Policy, type PolicyDecision } from "./policies.ts";
 import { renderDecision } from "./prompt.ts";
@@ -80,12 +80,12 @@ export function nativePolicy(bridge: NativeBridge, modelName: string, player: Pl
  * JSON answer line, in the model's chat template, generated at temperature 0 under a grammar that only
  * admits {"move": "<option>"}. Probabilities come from the logits at the move token.
  */
-export function nativeChatPolicy(bridge: NativeBridge, modelName: string, player: PlayerId = "phi4-mini"): Policy {
+export function nativeChatPolicy(bridge: NativeBridge, modelName: string, player: PlayerId = "phi4-mini", template: ChatTemplate = "phi4"): Policy {
   return {
     name: modelName,
     async decide(enc: EncodedDecision): Promise<PolicyDecision> {
       const started = performance.now();
-      const reply = await bridge.postMessage({ player, prompt: renderChatDecision(enc), grammar: moveGrammar(enc.keys), keys: enc.keys });
+      const reply = await bridge.postMessage({ player, prompt: renderChatDecision(enc, template), grammar: moveGrammar(enc.keys), keys: enc.keys });
       if (reply.error || reply.text === undefined) {
         throw new DecisionApiError("model-missing", reply.error ?? "no reply from the on-device model", MISSING_MODEL_HINT);
       }
