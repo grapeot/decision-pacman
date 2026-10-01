@@ -1,0 +1,42 @@
+{
+  "seed": 100,
+  "game_seconds": 30,
+  "clips": {
+    "jev": { "src": "media/jev.mp4", "poster": "media/jev.jpg", "pellets": 86, "lives_lost": 1 },
+    "phi4_mini": { "src": "media/phi4_mini.mp4", "poster": "media/phi4_mini.jpg", "pellets": 143, "lives_lost": 2 },
+    "ours": { "src": "media/pacman_08b_qwen.mp4", "poster": "media/pacman_08b_qwen.jpg", "pellets": 176, "lives_lost": 0 },
+    "phone": { "src": "media/iphone_08b.mp4", "poster": "media/iphone_08b.jpg" }
+  },
+  "averages": { "jev": 178, "ours": 425 },
+  "ranking": [
+    { "id": "jev", "pellets": 86 },
+    { "id": "phi4_mini", "pellets": 143 },
+    { "id": "ours", "pellets": 176 }
+  ],
+  "ladder": [
+    { "id": "random", "value": 30 },
+    { "id": "tev1_08b", "value": 69 },
+    { "id": "tev1_4b", "value": 148 },
+    { "id": "jev", "value": 178, "highlight": "neutral" },
+    { "id": "qwen35_4b", "value": 197 },
+    { "id": "greedy", "value": 201 },
+    { "id": "gemma4_e4b", "value": 230 },
+    { "id": "phi4_mini", "value": 232 },
+    { "id": "ours", "value": 425, "highlight": "strong" }
+  ],
+  "band": { "from": 148, "to": 232 },
+  "thinking": { "off": 301, "on": 531 },
+  "timer": { "fast_s": 0.055, "slow_s": 2.4 },
+  "links": {
+    "cta_zh": "https://ai-builders.com/",
+    "cta_en": "https://maven.com/superlinear/aibuilders",
+    "repo": "https://github.com/grapeot/decision-pacman",
+    "model": "https://huggingface.co/grapeot/decision-pacman-0.8b-GGUF",
+    "results": "https://github.com/grapeot/decision-pacman/blob/master/docs/results.md",
+    "notebook": "https://github.com/grapeot/decision-pacman/blob/master/docs/model_evaluation.md"
+  },
+  "commands": [
+    "hf download grapeot/decision-pacman-0.8b-GGUF pacman-0.8b-qwen-Q8_0.gguf Modelfile.pacman-0.8b-qwen --local-dir .",
+    "ollama create pacman-0.8b-qwen -f Modelfile.pacman-0.8b-qwen"
+  ]
+}

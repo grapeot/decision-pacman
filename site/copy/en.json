@@ -1,0 +1,108 @@
+{
+  "meta": {
+    "title": "A 0.8B model vs Jev at Pac-Man",
+    "description": "In the same Pac-Man game, a 795 MB model eats more than twice as many pellets as Jev and runs offline on a phone. Build your own model instead of only using one."
+  },
+  "nav": {
+    "lang": "中文"
+  },
+  "hero": {
+    "kicker": "A small 0.8B experiment",
+    "title": "A 0.8B model eats twice as many pellets as Jev, and runs offline on a phone",
+    "subtitle": "Same Pac-Man game, same text input. No player sees the screen, only a few lines of text.",
+    "jev_label": "Jev (hosted API)",
+    "ours_label": "Our 0.8B",
+    "jev_stat": "30 s: {pellets} pellets, {lives_lost} life lost",
+    "ours_stat": "30 s: {pellets} pellets, no lives lost",
+    "note": "One 30-second game each. Over 10 games: Jev {jev_avg} pellets on average, our 0.8B {ours_avg}.",
+    "replay": "Replay"
+  },
+  "play": {
+    "title": "Try it yourself",
+    "lead": "Same run, 30 seconds. See where you rank against the models.",
+    "start": "Start",
+    "eyes_toggle": "Play through the model's eyes",
+    "eyes_hint": "No graphics. You only see the text lines that the models receive at each intersection.",
+    "time_left": "Time left:",
+    "result_title": "Time's up. You ate {pellets} pellets: #{rank} of {total}.",
+    "result_you": "You",
+    "again": "Play again",
+    "controls_hint": "Use arrow keys, WASD, or swipe to turn.",
+    "pellets": "Pellets",
+    "lives": "Lives",
+    "eyes_waiting": "Pac-Man is waiting at the junction. Pick a way.",
+    "eyes_next": "Next junction, answer any time",
+    "sound_on": "Sound on",
+    "sound_off": "Sound off"
+  },
+  "halo": {
+    "title": "It is not that mysterious",
+    "lead": "Take an ordinary open-source model with zero decision training and constrain its output. It plays about as well as Jev.",
+    "jev_label": "Jev",
+    "phi_label": "phi4-mini (3.8B)",
+    "chart_title": "10-game average pellets eaten",
+    "chart_note": "Off-the-shelf models and hand-crafted rules cluster between 148 and 232. Our 0.8B reaches 425. All players read the exact same text prompts.",
+    "chart_labels": {
+      "random": "Random",
+      "tev1_08b": "tev1:0.8b",
+      "tev1_4b": "tev1:4b",
+      "jev": "Jev",
+      "qwen35_4b": "qwen3.5:4b",
+      "greedy": "Greedy rule",
+      "ours": "Our 0.8B",
+      "gemma4_e4b": "gemma4:e4b",
+      "phi4_mini": "phi4-mini"
+    },
+    "offline_title": "Replication unlocks entirely new capabilities",
+    "offline_body": "No network needed, and it runs on a phone. This is a screen recording from an iPhone.",
+    "phi_stat": "30 s: {pellets} pellets, {lives_lost} lives lost",
+    "chart_band": "off-the-shelf + rule",
+    "unmute": "Unmute",
+    "mute": "Mute"
+  },
+  "paths": {
+    "title": "Still not satisfied? Two paths forward",
+    "lead": "Two different paths, each with its own trade-offs.",
+    "a_title": "Customize for your task",
+    "a_body": "Fine-tuning is no silver bullet, but it lets you make deliberate trade-offs across size, speed, cost, domain, and intelligence.",
+    "b_title": "Move intelligence up",
+    "b_body": "Switch to a bigger model and let it think. When the game waits for it, a 27B model goes from {off} to {on} pellets, at about 2.4 seconds per move.",
+    "b_timer_fast": "0.8B: {s} s per move",
+    "b_timer_slow": "27B thinking: {s} s per move"
+  },
+  "recipe": {
+    "s1_title": "Teacher model labels data",
+    "s1_cost": "~54,000 states in ~1 hour",
+    "s2_title": "Train on a single GPU",
+    "s2_cost": "32 minutes",
+    "s3_title": "Resulting model size",
+    "s3_cost": "795 MB",
+    "s4_title": "Run offline on mobile",
+    "s4_cost": "~0.5 seconds per step",
+    "note": "That is the trade-off: on 194 general decision questions unrelated to Pac-Man, it fell from 0.66 to 0.53. It was built for this one task."
+  },
+  "builder": {
+    "title": "From passive user to builder",
+    "closed_title": "Closed-source services",
+    "closed_body": "You use them when they work. When they fail, your only choice is switching providers.",
+    "yours_title": "Your own model",
+    "yours_body": "Size, speed, cost, domain, and intelligence: you can adjust every single dial yourself.",
+    "quote": "Being able to build and choosing not to is very different from having no other choice."
+  },
+  "cta": {
+    "title": "Ready to move from user to builder?",
+    "body": "The course walks you through the entire pipeline on your own task: pick a task, select a teacher, label data, train, and deploy to mobile.",
+    "button": "Join the course"
+  },
+  "footer": {
+    "run_title": "Run it on your own machine",
+    "links_title": "Project links",
+    "repo": "GitHub repository",
+    "model": "Hugging Face model",
+    "results": "Full benchmark results",
+    "notebook": "Lab notebook: over a dozen experiments",
+    "fineprint": "Results are for this one game, 10 games per player. Realtime scores vary from run to run.",
+    "copy": "Copy",
+    "copied": "Copied"
+  }
+}
