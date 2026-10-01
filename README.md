@@ -39,6 +39,7 @@ Full numbers, caveats (clock effects, run-to-run variance up to ~150 pellets, ha
 | [`docs/media/demo_tev1_4b.mp4`](docs/media/demo_tev1_4b.mp4) | `tev1:4b` | 101 | 1 |
 | [`docs/media/demo_jev.mp4`](docs/media/demo_jev.mp4) | Jev 1.13.0 (hosted) | 86 | 1 |
 | [`docs/media/demo_qwen35_4b.mp4`](docs/media/demo_qwen35_4b.mp4) | `llm:qwen3.5:4b` | 109 | 0 |
+| [`docs/media/demo_phi4_mini.mp4`](docs/media/demo_phi4_mini.mp4) | `llm:phi4-mini` | 143 | 2 |
 | [`docs/media/demo_pacman_08b_qwen.mp4`](docs/media/demo_pacman_08b_qwen.mp4) | `pacman-0.8b-qwen` | 176 | 0 |
 
 ## Quickstart
@@ -65,6 +66,8 @@ Then open `http://localhost:5173/?model=pacman-0.8b-qwen`. The GGUF (Q8_0, 795 M
 ## iPhone
 
 `ios/` runs the same game on an iPhone with three players: the distilled 0.8B and phi4-mini on device, and Jev in the cloud. See [docs/guides/iphone.md](docs/guides/iphone.md).
+
+[`docs/media/iphone_pacman_08b_qwen.mp4`](docs/media/iphone_pacman_08b_qwen.mp4) is a 29-second screen recording of the distilled `pacman-0.8b-qwen` on an iPhone 16 Pro Max at 1x: about 505 ms per decision, 25-28% late answers, no lives lost.
 
 ## Reproduce each result
 

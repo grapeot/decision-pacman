@@ -128,7 +128,7 @@ The clips below are single 30-second games. They illustrate play; they do not me
 
 ## Clips
 
-All clips record 30 seconds of gameplay on seed 100 at 1x speed.
+The browser clips record 30 seconds of gameplay on seed 100 at 1x speed. The iPhone clip is a 29-second screen recording at 1x on a random seed.
 
 | File | Player | Score | Pellets | Lives lost |
 |---|---|---|---|---|
@@ -136,7 +136,9 @@ All clips record 30 seconds of gameplay on seed 100 at 1x speed.
 | [`media/demo_tev1_4b.mp4`](media/demo_tev1_4b.mp4) | `tev1:4b` | 1,250 | 101 | 1 |
 | [`media/demo_jev.mp4`](media/demo_jev.mp4) | Jev 1.13.0 (hosted) | 900 | 86 | 1 |
 | [`media/demo_qwen35_4b.mp4`](media/demo_qwen35_4b.mp4) | `llm:qwen3.5:4b` | 1,370 | 109 | 0 |
+| [`media/demo_phi4_mini.mp4`](media/demo_phi4_mini.mp4) | `llm:phi4-mini` | 1,710 | 143 | 2 |
 | [`media/demo_pacman_08b_qwen.mp4`](media/demo_pacman_08b_qwen.mp4) | `pacman-0.8b-qwen` | 3,320 | 176 | 0 |
+| [`media/iphone_pacman_08b_qwen.mp4`](media/iphone_pacman_08b_qwen.mp4) | `pacman-0.8b-qwen` on an iPhone 16 Pro Max | 2,500 | 174 | 0 |
 
 ## Records with lookahead in the input
 
