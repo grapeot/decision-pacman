@@ -2,6 +2,8 @@
 
 This document records how we chose the in-game model, the fine-tuning target, and the teacher, and what the evidence does and does not support. It will grow as later stages produce in-game results.
 
+> This file is the lab notebook, kept in the order the experiments were run, and section numbers are stable. Current headline numbers and their caveats are in [`results.md`](results.md); how to reproduce them is in [`guides/evaluate.md`](guides/evaluate.md) and [`guides/distill.md`](guides/distill.md).
+
 ## Summary
 
 - **In-game default: `tev1:4b`.** It was the best off-the-shelf trade-off on this machine: about 160 ms per decision and 0.88 accuracy on the probe, faster and more accurate than `nimble`.
