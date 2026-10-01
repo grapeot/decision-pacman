@@ -129,6 +129,8 @@ On an iPhone 16 Pro Max at 1x speed (2026-10-01):
 
 A 0.8B decision takes about 400 ms on the phone against 55-63 ms on the M3 Ultra. In the first phone test (with an earlier 0.8B fine-tune of the same size), 27% of answers arrived after Pac-Man had passed their junction, against 13% on the Mac. The same earlier tests showed that latency also climbs with heat: from about 360-375 ms at the start of a game to 650-850 ms after 40-60 s of continuous inference (thermal state `serious`), with 23-45% stale answers per game. The game itself held 30 ticks per second during inference. The first model load took 17 s (shader compilation); later loads took 0.37 s. phi4-mini takes seconds per answer. A slower game alone does not fix that: at 0.25x, phi4-mini still answered in 2.5-2.6 s per decision (thermal state `serious`), and 8 of its first 18 decisions arrived after Pac-Man had passed the junction.
 
+A later screen recording, [`docs/media/iphone_pacman_08b_qwen.mp4`](../media/iphone_pacman_08b_qwen.mp4) (29 s, 1x), shows the distilled `pacman-0.8b-qwen` at about 505 ms per decision with 25-28% late answers. It ate 174 pellets for 2,500 points and lost no lives.
+
 Only one on-device model is loaded at a time; switching frees the previous model before loading the next. phi4-mini takes about 3.3 GB with its cache.
 
 ## Use Wait for phi4-mini

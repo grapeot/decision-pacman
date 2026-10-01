@@ -199,6 +199,11 @@
 - `ios/scripts/mac_check.sh decision` with the GGUF downloaded from Hugging Face: same choice on 60 of 60, largest probability difference 0.0004, 34 ms per decision.
 - A screen recording on the iPhone 16 Pro Max showed the distilled model at a median of about 505 ms per decision with 25-28% late answers at 1x.
 
+### 2026-10-01 (phi4-mini and iPhone clips)
+
+- Recorded `docs/media/demo_phi4_mini.mp4` (browser, seed 100, 1x, 30 s, `llm:phi4-mini`, features, M3 Ultra under unrelated background load, load average about 17-20): score 1,710, 143 pellets, two lives lost, p50 about 150 ms per decision. A short throwaway take warmed Vite's dependency cache first, so the clip opens on the game.
+- Added `docs/media/iphone_pacman_08b_qwen.mp4`, a 29-second screen recording of `pacman-0.8b-qwen` on the iPhone 16 Pro Max (1x, random seed, status bar cropped): about 505 ms per decision, 25-28% late answers, score 2,500, 174 pellets, no lives lost. README, `results.md`, and the iPhone guide link both clips.
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.
