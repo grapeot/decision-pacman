@@ -164,6 +164,10 @@
 - The fine-tuned player now loads the distilled `pacman-0.8b-qwen` (falls back to `model.gguf`). All three players see the same current-state input.
 - On the iPhone 16 Pro Max, 1x speed: the distilled 0.8B answered in about 400 ms per decision (p50 393-425 ms over the first 18 decisions); phi4-mini loaded in 4.9 s and answered in 2.2-2.9 s per decision, without memory trouble; Jev over Wi-Fi answered in about 125-155 ms with the key read from Documents.
 
+### 2026-10-01 (quarter speed)
+
+- Added a 0.25x speed option for the slow on-device phi4-mini. On the iPhone 16 Pro Max at 0.25x, phi4-mini still answered in 2.5-2.6 s per decision with the thermal state at "serious", and 8 of 18 decisions in the first minute arrived after Pac-Man had passed the junction.
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.
