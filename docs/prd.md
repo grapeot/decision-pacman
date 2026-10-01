@@ -1,5 +1,7 @@
 # PRD: Decision Pac-Man
 
+> **Note (2026-10-01).** This PRD is kept as the original requirements and is not updated. The project has since grown beyond its four stages (hosted Jev and plain chat models as players, an LLM teacher with lookahead distilled into a features-only 0.8B, a latency breakdown, an iPhone app with three players). Current numbers are in [`results.md`](results.md), how-to guides in [`guides/`](guides/), and architecture in [`rfc.md`](rfc.md).
+
 ## Goal
 
 Show, end to end, what it takes to make a small local decision model play a real-time game well. The project has four stages:
