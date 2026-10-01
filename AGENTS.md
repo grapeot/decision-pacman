@@ -1,6 +1,6 @@
 # AGENTS.md
 
-A browser demo in which a local decision model (`/v1/systemone`, default `tev1:4b` on Ollama) plays a Pac-Man-style game in real time, plus a pipeline to generate teacher data, fine-tune a 0.8B model, and evaluate it. Read `docs/prd.md` and `docs/rfc.md` before changing architecture. Model choices and their evidence are in `docs/model_evaluation.md`. This repo targets public GitHub and is written in English.
+A browser demo in which a local decision model (`/v1/systemone`, default `tev1:4b` on Ollama) plays a Pac-Man-style game in real time, plus a pipeline to label game states with an LLM teacher, distill them into a 0.8B model, and evaluate it. The distilled model, `pacman-0.8b-qwen`, is published at https://huggingface.co/grapeot/decision-pacman-0.8b-GGUF. Read `docs/prd.md` and `docs/rfc.md` before changing architecture. Model choices and their evidence are in `docs/model_evaluation.md`. This repo targets public GitHub and is written in English.
 
 ## Structure
 
@@ -14,7 +14,7 @@ A browser demo in which a local decision model (`/v1/systemone`, default `tev1:4
 - `src/engine/`: pure, deterministic game logic. No DOM, no timers, no network, no `Math.random` (use the seeded RNG).
 - `src/encoders/`: state-to-text encoders. They report facts and never verdicts (see RFC decision 5).
 - `src/agent/`: agent loop, policies, and the `/v1/systemone` client.
-- `src/agent/oracle.ts`: engine lookahead (rollouts) used to label training data.
+- `src/agent/oracle.ts`: engine rollouts that the teacher (`teacher-peek5s`) sees at labeling time.
 - `training/`: Python fine-tuning and export scripts (uv `.venv`), run on the GPU machine.
 - `src/render/`, `src/main.ts`, `src/audio/`: browser-only code. Read engine state and never mutate game rules.
 - `scripts/`: headless runner, probe, and dev/build entrypoints. Scripts are the command contract; do not leave commands only in the README.
@@ -33,6 +33,7 @@ A browser demo in which a local decision model (`/v1/systemone`, default `tev1:4
 - The simulation must never await the model. Keep the 30 Hz fixed step independent of the agent loop.
 - Benchmark and latency claims must come from fresh states. Exact repeated requests hit a cache and are 5–10x faster.
 - Lookahead (engine rollouts) may label training data but never goes into a player's input in a comparison. Players are compared on the same current-state input.
+- The public docs tell one story: off-the-shelf models against the 0.8B distilled from the LLM teacher (`pacman-0.8b-qwen`). The rollout search (`oracle-5s`) and the student trained on it (`pacman-0.8b`) appear only in the FAQ (README, `docs/results.md`) and in `docs/model_evaluation.md`.
 - Record measured numbers (latency, tokens, scores) in `working.md` with the model, encoder, and hardware.
 - Public repo hygiene: no real emails, keys, internal paths, hostnames, or vault references in any tracked file. Use `.env.example` with placeholder values. Run a privacy scan (`rg -n -i "@|op://|/Users/|ts\.net|tailscale|api[_-]?key|token" .` and review every hit) before any push. None of this belongs in the README.
 - No original arcade art, audio, or branding. Draw graphics in code.

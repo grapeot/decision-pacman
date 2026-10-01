@@ -21,18 +21,16 @@ The game is a browser application. A deterministic TypeScript engine steps at a 
 ```
 
 The system supports three kinds of players alongside scripted baselines (`random`, `greedy`):
-1. Local decision models served over Ollama's `/v1/systemone` API (`tev1:0.8b`, `tev1:4b`, and fine-tuned models such as `pacman-0.8b` and `pacman-0.8b-qwen`). The model returns probabilities for every legal option, read from option-letter logits.
+1. Local decision models served over Ollama's `/v1/systemone` API (`tev1:0.8b`, `tev1:4b`, and fine-tuned models such as `pacman-0.8b-qwen`). The model returns probabilities for every legal option, read from option-letter logits.
 2. Plain chat models accessed through Ollama's `/api/chat` using policy names formatted as `llm:<ollama-model>` (e.g. `llm:phi4-mini`, `llm:gemma4:e4b`, `llm:qwen3.5:4b`). They receive the same state facts, a JSON schema restricting `move` to the legal options, thinking off, and temperature 0. Probabilities come from token logprobs.
 3. TypeSafe's hosted decision model Jev (`jev-latest`) at `https://api.typesafe.ai/v1/systemone`, with a bearer key from `TYPESAFE_API_KEY`. The headless `jev` policy calls it directly. In the browser, the dev-server proxy adds the key, so it never reaches the page. Hosted requests leave out Ollama's `keep_alive` field, which the API rejects.
 
 The engine has no DOM dependency. The same code runs headless in Node for unit tests, benchmarks, teacher data generation, and seeded game evaluations. In the headless runner, a `realtime` clock converts decision latency into elapsed game ticks, while a `lockstep` clock pauses the game for every answer.
 
-For training, the headless engine generates game states. Labels come from `oracle-5s` (engine rollouts) or from an OpenAI-compatible chat teacher with 5-second lookahead (`teacher-peek5s`, Qwen3.8-27B on an RTX 5090). Lookahead may label training data but never enters a player's input in a comparison, so the students compared on the ladder read `features` only. The pipeline trains a LoRA adapter on the `Qwen/Qwen3.5-0.8B` base with unsloth, exports it to GGUF with llama.cpp, and imports it into Ollama, where it is served over `/v1/systemone` like any other decision model.
+For training, the headless engine generates game states. Labels come from an OpenAI-compatible chat teacher (`teacher-peek5s`, Qwen3.8-27B on an RTX 5090) that sees one 5-second engine rollout per option at labeling time; the rollouts come from `src/agent/oracle.ts`. Lookahead may label training data but never enters a player's input in a comparison, so the student reads `features` only. The pipeline trains a LoRA adapter on the `Qwen/Qwen3.5-0.8B` base with unsloth, exports it to GGUF with llama.cpp, and imports it into Ollama, where it is served over `/v1/systemone` like any other decision model. The result, `pacman-0.8b-qwen`, is published as a Q8_0 GGUF with a Modelfile on Hugging Face (`grapeot/decision-pacman-0.8b-GGUF`).
 
 ```
- engine (Node) ──states──► teacher-peek5s (chat with lookahead) ──labels──┐
-      │                                                                   ├─► dataset (JSONL)
-      └──states──► oracle-5s (engine rollouts) ───────────────────labels──┘
+ engine (Node) ──states──► teacher-peek5s (chat model + engine rollouts) ──labels──► dataset (JSONL)
  dataset (student reads features) ──► LoRA fine-tune (Qwen3.5-0.8B base, RTX 5090) ──► GGUF ──► /v1/systemone ──► evaluation
 ```
 
@@ -59,7 +57,7 @@ Full method and numbers are in `docs/model_evaluation.md`. The constraints that 
   - `src/agent/llm.ts`: `llm:<model>` policy querying plain chat models via Ollama's `/api/chat` with a JSON schema restricting `move` to legal options, thinking off, and temperature 0.
   - `src/agent/prompt.ts`: the Ollama System One prompt in TypeScript, byte-identical to the Hugging Face chat template on 20 test fixtures, for models run outside Ollama (the iOS app).
   - `src/agent/native.ts`: the bridge policy for the iOS app: the page renders the prompt and native code runs the model.
-  - `src/agent/oracle.ts`: the search oracle (`oracle-5s`, `oracle-3s`, `oracle-8s`). `rollout()` copies the game, plays an option, and runs the real engine forward with greedy play at later junctions; `peek()` reports a rollout as facts. Used for labels and records, never as a compared player.
+  - `src/agent/oracle.ts`: engine rollouts. `rollout()` copies the game, plays an option, and runs the real engine forward with greedy play at later junctions; `peek()` reports a rollout as facts for the teacher's labeling prompt and the `features-peek5s` encoder. The same file defines a search player over rollouts (`oracle-5s`, `oracle-3s`, `oracle-8s`) that drives games during data generation; it sees the future, so it is never a compared player (README FAQ).
   - `src/agent/teacher.ts`: the chat-model teacher (`teacher`, `teacher-think`, `teacher-peek5s`) over any OpenAI-compatible endpoint.
   - `src/agent/players.ts`: the iOS app's three player ids, shared with the Swift side.
 - `src/sim/runner.ts`: shared game-driving simulation loop used by the headless runner and dataset generation.
@@ -67,7 +65,7 @@ Full method and numbers are in `docs/model_evaluation.md`. The constraints that 
 - `src/audio/`: original chiptune music and sound effects synthesized in code using Web Audio. `npm run render-audio` renders an offline audio tour.
 - `scripts/`: command-line entrypoints for headless execution, data generation, benchmarks, and probes:
   - `scripts/run_headless.ts`: headless game runner supporting realtime and lockstep clocks (`npm run headless`).
-  - `scripts/gen_teacher_data.ts`: records game states labeled by the oracle or teacher (`npm run gen-data`).
+  - `scripts/gen_teacher_data.ts`: records game states labeled by the teacher (`npm run gen-data`).
   - `scripts/bench_prefill_decode.py`: measures latency split into prefill and decode across Ollama and llama.cpp backends.
   - `scripts/eval_general_decisions.py`: scores decision models on JevBench's public items, decisions that are not Pac-Man.
   - `scripts/probe_decision_models.py`, `scripts/probe_teacher.py`: probe a decision model or a chat teacher on 40 synthetic scenarios.
@@ -75,7 +73,7 @@ Full method and numbers are in `docs/model_evaluation.md`. The constraints that 
   - `scripts/export_chat_prompts.ts`: exports game prompts with Ollama's recorded `llm:phi4-mini` answers for the iOS Mac check.
   - Dev and test entrypoints: `npm run dev`, `npm test`, `npm run typecheck`, `npm run build`.
 - `training/`: Python scripts (using uv) for dataset preparation, fine-tuning, and evaluation:
-  - `training/build_sft.py`: converts raw game state recordings into SFT datasets with soft oracle targets or smoothed hard teacher labels.
+  - `training/build_sft.py`: converts raw game state recordings into SFT datasets with smoothed hard teacher labels (or soft targets from per-option rollout values).
   - `training/train.py`: fine-tunes `Qwen/Qwen3.5-0.8B` with LoRA (unsloth), with the loss on the option-letter logits as Ollama scores them.
   - `training/export_gguf.sh`: merges LoRA adapters and exports to GGUF format via llama.cpp.
   - `training/prompt.py`: canonical Python prompt rendering matching Ollama's `/v1/systemone` format.
@@ -138,15 +136,13 @@ Baselines: `random` (uniform over legal options) and `greedy` (nearest pellet, a
 
 ## Stage 2: teacher data
 
-**Labeler.** `oracle-5s` (`src/agent/oracle.ts`). For each option it copies the game, plays the option, and rolls the real engine forward 5 seconds, with greedy play at later junctions. Ghost moves follow the real rules, so the lookahead is exact except for frightened ghosts' random turns. The value of an option is the score gained, minus a large penalty for a death that shrinks the later the death happens, minus the distance to the nearest pellet at the end. It costs about 5 ms of CPU per state. A chat model (Qwen3.8-27B) was evaluated first and dropped as the labeler: it plays far worse than the oracle and costs a remote GPU (`docs/model_evaluation.md`, experiments 9 and 10).
+**Labeler.** Qwen3.8-27B with lookahead (`teacher-peek5s`, `src/agent/teacher.ts`). For each option, `src/agent/oracle.ts` copies the game, plays the option, and rolls the real engine forward 5 seconds with greedy play at later junctions; the outcome (seconds until death, pellets, power pellets, ghosts eaten, points) goes into the teacher's prompt as facts. Ghost moves follow the real rules, so the lookahead is exact except for frightened ghosts' random turns. Without it, the same model lost all its lives within 39 to 93 s and was not a usable teacher on the encoded state alone (`docs/model_evaluation.md`, sections 9, 10, and 13). With it, the teacher labeled the `q1` dataset (54,325 requests, 31,570 deduplicated training rows). The teacher server returns no logprobs, so labels are hard.
 
-**Update (2026-10-01).** Given one simulated 5-second future per option in its prompt (`teacher-peek5s`, `docs/model_evaluation.md` section 13), Qwen3.8-27B became a usable labeler. In section 18 it picked the oracle's best option on 88-92% of states (90.7% training, 92.0% validation). It labeled the `q1` dataset (54,325 requests, 31,570 deduplicated training rows) with hard labels. The student trained on those labels, `pacman-0.8b-qwen`, reads `features` only and averaged 425 pellets over three realtime runs at 55 ms per decision, level with the oracle-trained `pacman-0.8b` within run-to-run variance.
+**History.** The first student, `pacman-0.8b`, learned from the rollout search `oracle-5s` instead: it scores each option from the same rollouts (score gained, minus a death penalty that shrinks the later the death happens, minus the distance to the nearest pellet at the end) at about 5 ms of CPU per state. The search's per-option values allow soft targets, so near-ties do not force an arbitrary hard label. Both students play at the same level (`docs/model_evaluation.md` section 18). The LLM teacher is the main path because most tasks have no simulator to search with.
 
-**Soft labels.** The record stores every option's value, not only the argmax. Training can then turn values into a target distribution, so near-ties no longer force an arbitrary hard label.
+**State sampling.** If only a strong player drives the game, the data covers only the positions a strong player reaches, and the student will wander into positions it never saw. States are therefore sampled from a mix of players: the `oracle-5s` search, greedy, and random play. A DAgger round with the student playing was planned and not run. The teacher labels every state, whoever produced it.
 
-**State sampling.** If only the oracle plays, the data covers only the positions a strong player reaches. The fine-tuned student will then wander into positions the oracle never saw. States are therefore sampled from a mix of rollouts: the oracle playing, greedy and random play, and in round two the fine-tuned student playing (DAgger-style). All sampled states are labeled by the oracle, whoever produced them.
-
-**Information gap.** The oracle sees the full game state, and the student sees only its encoding. Stage 4 measures agreement with the oracle on held-out states. A large gap points to the encoder, not the model.
+**Information gap.** The teacher sees the rollouts, and the student sees only the encoding. Stage 4 measures agreement with the teacher on held-out states. A large gap points to the encoder, not the model.
 
 **Record format.** One JSONL line per state: seed, tick, source policy, encoder, encoded state, instructions, options, per-option values, and the label.
 
@@ -158,11 +154,11 @@ Baselines: `random` (uniform over legal options) and `greedy` (nearest pellet, a
 
 **Base model.** `Qwen/Qwen3.5-0.8B`, the base of `tev1:0.8b` (Ollama reports 752M parameters). Tev1's own 0.8B weights are published only as GGUF.
 
-**Data.** `training/build_sft.py` turns oracle-labeled states into rows with the Ollama messages and a soft target: softmax of each option's oracle value divided by a temperature of 50 points (about five pellets). Exact duplicate states are removed. v1 data: 31,585 training rows (oracle 17,482, greedy 8,075, random 6,028 as players) and 4,975 validation rows from separate seeds.
+**Data.** `training/build_sft.py` turns labeled states into rows with the Ollama messages and a target: the teacher's move with 0.9, and 0.1 spread over the other options (`--target label --smoothing 0.1`). For search labels it can instead take a softmax of each option's value divided by a temperature of 50 points (about five pellets). Exact duplicate states are removed. `q1` data: 31,570 training rows and 4,973 validation rows from separate seeds.
 
-**Training.** `training/train.py`: LoRA (rank 16, alpha 32) on every language-side linear layer, lr 1e-4 cosine with 3% warmup, batch 32, 2 epochs (1,975 steps), bf16, one RTX 5090. The loss is cross-entropy between the soft target and the softmax over option-letter logits at the answer position. Only that position is projected through the output layer, so memory stays small despite the 248k-token vocabulary. A startup check compares that projection with the model's own logits. Training takes about 40 minutes.
+**Training.** `training/train.py`: LoRA (rank 16, alpha 32) on every language-side linear layer, lr 1e-4 cosine with 3% warmup, batch 32, 2 epochs (1,974 steps), bf16, one RTX 5090. The loss is cross-entropy between the target distribution and the softmax over option-letter logits at the answer position. Only that position is projected through the output layer, so memory stays small despite the 248k-token vocabulary. A startup check compares that projection with the model's own logits. Training takes about 32 minutes.
 
-**Serving.** `training/export_gguf.sh` merges the adapter and converts to Q8_0 GGUF with llama.cpp. The GGUF is imported through Ollama's `/api/create` with Tev1's system prompt, as `pacman-0.8b`. Ollama 0.35.0 does not accept `CAPABILITY` in a Modelfile, but it serves `/v1/systemone` for the imported model anyway. The game needs no change beyond the model name.
+**Serving.** `training/export_gguf.sh` merges the adapter and converts to Q8_0 GGUF with llama.cpp. The GGUF is imported into Ollama with Tev1's system prompt, as `pacman-0.8b-qwen`, either through `/api/create` or through the Modelfile published with the weights on Hugging Face. Ollama 0.35.0 does not accept `CAPABILITY` in a Modelfile, but it serves `/v1/systemone` for the imported model anyway. The game needs no change beyond the model name.
 
 **GPU use.** The GPU host serves the teacher model on all three cards. Training borrows one card with the cluster's lease script, which drops that replica from the router, and then returns it. The other two replicas keep serving.
 
@@ -173,7 +169,7 @@ Every model plays the same held-out seeds in the `realtime` clock at the same ga
 ## Risks
 
 - **Imported model not accepted by Ollama's decision runner.** Mitigation: the fallbacks in Stage 3. This is verified early with an untrained export, before any real training run.
-- **Teacher labels are weaker on real positions than on the probe.** The probe scenarios have one clearly correct answer. Real positions are ambiguous. Mitigation: the oracle cross-check, and a hand review of disagreements before training.
+- **Teacher labels are weaker on real positions than on the probe.** The probe scenarios have one clearly correct answer. Real positions are ambiguous. Mitigation: the lookahead in the teacher's prompt, and a check of its labels against the rollout search's choices (they agreed on 88-92% of states).
 - **Distribution shift.** The student reaches states the teacher never did. Mitigation: mixed-policy sampling and a DAgger round.
 - **Shared GPU host.** Teacher serving and training compete for the same GPU. Mitigation: run the stages in sequence.
 
@@ -186,4 +182,4 @@ The client distinguishes connection refused, CORS rejection, model not found, an
 - **Server-side game with a WebSocket viewer.** It adds a runtime and a protocol for a single-player demo whose model is already a local HTTP service.
 - **Turn-based play in the browser.** It scores higher but removes the point of the demo. It survives as the `lockstep` clock.
 - **Chat model as the in-game player.** Qwen3.8-27B is accurate but needs parsing and a remote GPU, and gives no calibrated probabilities. It is used offline as the teacher instead.
-- **Oracle-only labels.** They are free and exact for the rollout horizon, but they depend on the rollout policy for ghosts and on the horizon. They are kept as a cross-check. If agreement shows the oracle is the better labeler, the dataset can switch to it without other changes.
+- **Labels from the rollout search alone.** They are free and exact for the rollout horizon, and the first student used them; it played at the same level as the LLM-distilled one. The LLM teacher is the main path because the recipe carries over to tasks that have no simulator.

@@ -41,13 +41,20 @@ The headless runner writes outputs to `runs/<tag>/`:
 - `decisions.jsonl`: One record per decision.
 - `summary.json`: Aggregate statistics.
 
-### Fine-tuned models
+### The distilled 0.8B (`pacman-0.8b-qwen`)
 
-After training and importing fine-tuned models such as `pacman-0.8b` or `pacman-0.8b-qwen` into Ollama (see [distill.md](distill.md)), run them by model name:
+The distilled model is published on Hugging Face at [grapeot/decision-pacman-0.8b-GGUF](https://huggingface.co/grapeot/decision-pacman-0.8b-GGUF). It runs on the same Ollama as the other decision models, with no GPU. Download the GGUF and its Modelfile, and import them:
+```bash
+hf download grapeot/decision-pacman-0.8b-GGUF pacman-0.8b-qwen-Q8_0.gguf Modelfile.pacman-0.8b-qwen --local-dir .
+ollama create pacman-0.8b-qwen -f Modelfile.pacman-0.8b-qwen
+```
+The `hf` command comes with `huggingface_hub` (`pip install -U huggingface_hub`). `pacman-0.8b-qwen-Q8_0.gguf` (795 MB) is the evaluated model. The Modelfile names the GGUF in `FROM`, sets `TEMPLATE {{ .Prompt }}`, and carries the system prompt from `training/prompt.py`, the one the model was trained under. Imported this way, it gave the same choices and probabilities as the evaluated model on 100 validation states. Ollama copies the weights into its own store, so the downloaded files can be deleted afterwards.
+
+Run it by model name:
 ```bash
 npm run headless -- --policy pacman-0.8b-qwen --games 3 --seed 100
 ```
-In the browser, open `http://localhost:5173/?model=pacman-0.8b-qwen`. Model weights for `pacman-0.8b` and `pacman-0.8b-qwen` are not published, and training data is not included in the repository. Train them using the instructions in [distill.md](distill.md).
+In the browser, open `http://localhost:5173/?model=pacman-0.8b-qwen`. To train it yourself, see [distill.md](distill.md).
 
 ## Plain chat models (llm:<model>)
 
@@ -91,8 +98,8 @@ Open `http://localhost:5173/?model=jev-latest`. The development server reads the
 The repository provides scripted baselines, engine rollouts, and teacher policies:
 - `random`: Selects uniformly at random among legal options.
 - `greedy`: Flees nearby ghosts, chases edible ghosts, and otherwise heads for the nearest pellet.
-- `oracle-5s` (and variants `oracle-3s`, `oracle-8s`): For each option, copies the game state and simulates 5 seconds forward with greedy play at later junctions, scoring the outcome. Defined in `src/agent/oracle.ts`, it requires about 5 ms CPU per decision. Because it executes engine rollouts at decision time, it is a data labeling tool and record, not a comparable ladder player.
-- Chat teacher policies (`teacher`, `teacher-think`, `teacher-peek5s`): Connect to an OpenAI-compatible endpoint specified by `TEACHER_BASE_URL` and `TEACHER_MODEL` in `.env`. The `teacher-peek5s` policy adds a simulated 5-second engine rollout per option to the prompt (lookahead); it is used to generate training labels.
+- `oracle-5s` (and variants `oracle-3s`, `oracle-8s`): A search over engine rollouts (`src/agent/oracle.ts`). It sees the future at decision time, so it drives games during data generation but is not a ladder player; see the FAQ in the [README](../../README.md#faq).
+- Chat teacher policies (`teacher`, `teacher-think`, `teacher-peek5s`): Connect to an OpenAI-compatible endpoint specified by `TEACHER_BASE_URL` and `TEACHER_MODEL` in `.env`. The `teacher-peek5s` policy adds a simulated 5-second engine rollout per option to the prompt (lookahead); it labels the training data for `pacman-0.8b-qwen`.
 
 ## Encoders
 
@@ -137,7 +144,7 @@ The runner logs per-game results, prints an aggregate summary line (`meanPellets
 
 | Flag | Default | Description |
 |---|---|---|
-| `--policy` | `tev1:4b` | Player policy (`tev1:4b`, `tev1:0.8b`, `random`, `greedy`, `jev`, `llm:<model>`, `oracle-5s`, `teacher`, etc.) |
+| `--policy` | `tev1:4b` | Player policy (`tev1:4b`, `tev1:0.8b`, `pacman-0.8b-qwen`, `random`, `greedy`, `jev`, `llm:<model>`, `teacher`, etc.) |
 | `--base-url` | `VITE_DECISION_BASE_URL`, else `http://localhost:11434` | Decision endpoint for model policies |
 | `--encoder` | `features` | State encoder (`features`, `ascii-window`, `ascii-full`, `features-peek5s`) |
 | `--clock` | `realtime` | Clock mode: `realtime` charges decision latency in elapsed ticks; `lockstep` pauses the game for each answer |

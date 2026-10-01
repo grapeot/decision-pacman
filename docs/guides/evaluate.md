@@ -33,15 +33,15 @@ Lockstep numbers are not comparable with realtime numbers. Lockstep rows are rep
 
 Lookahead (engine rollouts) may label training data but never goes into a player's input in a comparison. Players are compared on the same current-state input (`features`). An exact rollout of a deterministic engine is close to seeing the future (only frightened ghosts turn at random).
 
-Lookahead is allowed for labeling training data (using `oracle-5s` or `teacher-peek5s`) and for storing rollouts in datasets (`features-peek5s` stored via `--also-encode`).
+Lookahead is allowed for labeling training data (the teacher `teacher-peek5s` sees rollouts from `src/agent/oracle.ts` while it labels) and for storing rollouts in datasets (`features-peek5s` stored via `--also-encode`).
 
-Results with lookahead in the input are records, not ladder rows. That covers `oracle-5s` (rollouts at decision time, section 10), Qwen3.8-27B with lookahead (section 13), Jev and `tev1:4b` with `features-peek5s` (section 16), and student B `pacman-0.8b-qwen-peek` (section 18). Their numbers, and the teacher's agreement with the oracle as a measure of label quality, are under "Records with lookahead in the input" in [results.md](../results.md).
+Results with lookahead in the input are records, not ladder rows. That covers Qwen3.8-27B with lookahead (section 13), Jev and `tev1:4b` with `features-peek5s` (section 16), and student B `pacman-0.8b-qwen-peek` (section 18). Their numbers are under "Records with lookahead in the input" in [results.md](../results.md). The rollout search `oracle-5s` also sees the future at decision time; it is covered in the FAQ at the end of results.md.
 
 ## Variance
 
-Realtime results of the same model varied by up to about 150 pellets between 10-game runs. For example, `pacman-0.8b` scored 456, 300, and 400 pellets across three runs.
+Realtime results of the same model varied by up to about 150 pellets between 10-game runs (section 18). For example, `pacman-0.8b-qwen` scored 441, 467, and 366 pellets across three runs.
 
-The 2026-10-01 runs shared the Mac with heavy unrelated CPU load (load average 15-36). For those benchmarks, `pacman-0.8b-qwen` and `pacman-0.8b` were alternated to face the same conditions. Compare realtime numbers within one day's runs, not across days. Alternate the models you compare in the same session.
+The 2026-10-01 runs shared the Mac with heavy unrelated CPU load (load average 15-36). For those benchmarks, the models compared were alternated to face the same conditions. Compare realtime numbers within one day's runs, not across days. Alternate the models you compare in the same session.
 
 One 10-game run is a single sample. Single games spread widely; for example, Jev's 10 games ranged from 103 to 231 pellets.
 
@@ -63,8 +63,7 @@ Every ladder run uses 10 games on seeds 100-109, 1x speed, a 5-minute cap (`--ma
 | greedy (scripted) | `npm run headless -- --policy greedy --games 10 --seed 100 --max-seconds 300` | None |
 | `llm:gemma4:e4b` | `npm run headless -- --policy llm:gemma4:e4b --games 10 --seed 100 --max-seconds 300` | `ollama pull gemma4:e4b` |
 | `llm:phi4-mini` | `npm run headless -- --policy llm:phi4-mini --games 10 --seed 100 --max-seconds 300` | `ollama pull phi4-mini` |
-| `pacman-0.8b` | `npm run headless -- --policy pacman-0.8b --games 10 --seed 100 --max-seconds 300` | Train on `oracle-5s` labels and import into Ollama ([distill.md](distill.md)); weights are not published |
-| `pacman-0.8b-qwen` | `npm run headless -- --policy pacman-0.8b-qwen --games 10 --seed 100 --max-seconds 300` | Train on Qwen3.8-27B labels and import into Ollama ([distill.md](distill.md)); weights are not published |
+| `pacman-0.8b-qwen` | `npm run headless -- --policy pacman-0.8b-qwen --games 10 --seed 100 --max-seconds 300` | Download from Hugging Face and import into Ollama ([run-models.md](run-models.md)), or train it ([distill.md](distill.md)) |
 
 ### Lockstep rows
 
@@ -74,24 +73,24 @@ These are listed apart from the ladder because the game waits for each answer. T
 |---|---|---|
 | Qwen3.8-27B, thinking off | `npm run headless -- --policy teacher --games 3 --seed 100 --max-seconds 300 --clock lockstep` | Set `TEACHER_BASE_URL` and `TEACHER_MODEL` in `.env` (OpenAI-compatible chat endpoint) |
 | Qwen3.8-27B, thinking on | `npm run headless -- --policy teacher-think --games 3 --seed 100 --max-seconds 300 --clock lockstep` | Set `TEACHER_BASE_URL` and `TEACHER_MODEL` in `.env` (OpenAI-compatible chat endpoint) |
-| `pacman-0.8b-qwen` | `npm run headless -- --policy pacman-0.8b-qwen --games 10 --seed 100 --max-seconds 300 --clock lockstep` | Train on Qwen3.8-27B labels and import into Ollama ([distill.md](distill.md)) |
+| `pacman-0.8b-qwen` | `npm run headless -- --policy pacman-0.8b-qwen --games 10 --seed 100 --max-seconds 300 --clock lockstep` | Download from Hugging Face and import into Ollama ([run-models.md](run-models.md)), or train it ([distill.md](distill.md)) |
 
 ## Other measurements
 
-### Offline agreement with the oracle
+### Offline agreement with the teacher
 
 Script: `training/score_ollama.py` (uses Python standard library only).
 
 ```bash
-python3 training/score_ollama.py --model <name> --n 1000
+python3 training/score_ollama.py --model <name> --data data/q1/val --target label --n 1000
 ```
 
-This script evaluates decision agreement against the oracle on held-out validation states (default `--data data/v1/val`). It needs validation data generated with `npm run gen-data`; see [distill.md](distill.md).
+This script measures how often a model picks the teacher's move on held-out validation states. It needs validation data labeled by the teacher with `npm run gen-data`; see [distill.md](distill.md).
 
 Variants:
 - Chat models: add `--chat` to ask a plain chat model the way `llm:` does.
 - Hosted Jev: `--base-url https://api.typesafe.ai --model jev-latest`, with `TYPESAFE_API_KEY` set.
-- Chat teacher labels: add `--target label` to score against teacher labels (e.g. `--data data/q1/val --target label`).
+- Agreement with the `oracle-5s` search's best option (the second agreement table in results.md): leave out `--data` and `--target`. The default `--data data/v1/val` holds validation states labeled by the search, the `gen-data` default labeler.
 
 Agreement is a secondary measure; play in the game carries more weight. Current agreement numbers are in [results.md](../results.md).
 
