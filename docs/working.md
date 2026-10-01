@@ -135,6 +135,14 @@
 - RTX 5090 (borrowed through the GPU lease and restored), CUDA llama.cpp: `tev1:4b` prefill 50 ms through `llama-server`, 25 ms in `llama-bench`, 4.5-4.8 ms per output token; `pacman-0.8b` 17 ms and 11 ms, 2.0-2.1 ms.
 - A first run without the per-request tag reused prompt caches across rounds and reported 19 ms prefill for `tev1:4b`. Another early run measured 457 ms end to end while Ollama was swapping models. Both were discarded.
 
+### 2026-10-01 (distilling the Qwen teacher into 0.8B)
+
+- Replayed the original training players on their original seeds to recover the same states with full game state, and relabeled them with `teacher-peek5s` (hard labels; the teacher server rejects logprobs): 54,325 requests in about 65 minutes at concurrency 8.
+- Trained three 0.8B students with `pacman-0.8b`'s recipe on one leased RTX 5090 (released 23:35, restored 01:46, readiness back to 3/3): A on features with teacher labels, B on `features-peek5s` with teacher labels, C on features with the oracle's best option as a hard label.
+- B agreed with the teacher on 96.9% of held-out states, scored 1,387 pellets in lockstep (teacher 1,396) and 765 in real time, at 84 ms p50. A scored 425 over three realtime runs and 417 in lockstep; C 406; `pacman-0.8b` reran at 300 and 400 against its documented 456.
+- JevBench generality: B 0.61, A 0.53, C 0.46.
+- Realtime runs today shared the Mac with heavy unrelated CPU load. Same-model runs varied by up to about 150 pellets.
+
 ## Lessons Learned
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.

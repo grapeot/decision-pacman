@@ -13,6 +13,7 @@ This document records how we chose the in-game model, the fine-tuning target, an
 - **An ordinary small chat model plays as well as Jev.** Given the same facts, a JSON schema restricted to the legal options, and thinking off, stock `phi4-mini` averaged 232 pellets at 187 ms per decision, `gemma4:e4b` 230, and `qwen3.5:4b` 197, against Jev's 178, all in real time with no failed answers. All three also agreed with the oracle more often than Jev (44-45% against 39.9%).
 - **A general LLM with lookahead beats the search oracle.** Qwen3.8-27B, shown one 5-second simulated future per option, averaged 1,396 pellets and reached level 6 in all 10 games, against 1,109 for `oracle-5s`, which scores the same rollouts with a hand-written formula. Without the lookahead, thinking took Qwen from 301 to 531 pellets, but it still lost all its lives within about two minutes.
 - **Closed models can use lookahead too, with very different gains.** Given the same 5-second rollout outcomes per option, hosted Jev went from 178 to 567 pellets in real time, beating the fine-tuned `pacman-0.8b` on plain features (456), while `tev1:4b` only went from 148 to 212. A fixed formula over the same rollouts (`oracle-5s`, 1,109) still beats Jev; Qwen3.8-27B (1,396) beats the formula.
+- **The 27B teacher distills into 0.8B when the student sees what the teacher saw.** Relabeled by Qwen3.8-27B with lookahead and trained on the lookahead input, a 0.8B model agreed with the teacher on 96.9% of held-out states and scored 1,387 pellets in lockstep (teacher 1,396) at 85 ms per decision instead of 309 ms; in real time it scored 765. Trained on features only, the same labels gave a student no better than the oracle-trained `pacman-0.8b`.
 - **State representation matters more than model size.** Compact per-direction facts beat a full ASCII board in both latency and decision quality. Quantization and prefix caching did not reduce latency.
 
 The probe uses synthetic scenarios with one clearly correct move each. It measures latency, output reliability, and basic judgment. It does not measure how well a model plays. Experiments 8 to 10 measure play in the game itself and carry more weight.
@@ -360,6 +361,58 @@ Per game, Jev with lookahead ate 432, 730, 481, 418, 972, 966, 301, 671, 461, an
 - `llama-server` with default settings adds about 70 ms (4B) and 30 ms (0.8B) on top of prefill, and it barely batched the 8 concurrent requests. Its end-to-end numbers reflect an untuned server, not the hardware.
 - Jev's 115 ms over the internet, with about 605 input tokens, fits a datacenter GPU's prefill of a few tens of milliseconds plus the network round trip.
 
+### 18. Distilling the LLM teacher into 0.8B
+
+Sections 11 and 13 left a gap: `pacman-0.8b` learned from the search oracle, not from the slow general model. This experiment relabels the same states with Qwen3.8-27B plus the 5 s lookahead (`teacher-peek5s`, thinking off) and trains 0.8B students on the labels.
+
+**Labels.** The players behind the original training data are deterministic for a seed, so replaying them on the original seeds (training 1000-1019 oracle, 2000-2029 greedy, 3000-3029 random; validation 900-902, 920-924, 940-944) reproduced the same 57,231 training and 8,047 validation states, now with the full game state for the lookahead. Evaluation seeds 100-109 were not used. The teacher's server does not return logprobs, so labels are hard: 0.9 on the teacher's move and 0.1 spread over the other options. 54,325 requests took about 65 minutes at concurrency 8 (about 14 per second). On these states the teacher picked the oracle's best option 90.7% of the time on training states and 92.0% on validation states; on section 11's 1,000 states, 88.3% (94.9% where the oracle is decisive).
+
+**Students.** All use `pacman-0.8b`'s recipe (Qwen3.5-0.8B, LoRA rank 16, alpha 32, lr 1e-4, batch 32, 2 epochs) on one RTX 5090, borrowed through the GPU lease and restored afterwards.
+
+| Student | Input | Labels | Rows (train / val) | Steps | Time |
+|---|---|---|---|---|---|
+| A `pacman-0.8b-qwen` | features | teacher, hard | 31,570 / 4,973 | 1,974 | 32 min |
+| B `pacman-0.8b-qwen-peek` | features-peek5s | teacher, hard | 38,119 / 6,126 | 2,383 | 63 min |
+| C `pacman-0.8b-oracle-hard` | features | oracle's best, hard | same as `pacman-0.8b` | 1,975 | 32 min |
+
+C separates who labels from the label form: it has `pacman-0.8b`'s states and teacher-style hard labels from the oracle. B has more rows because the lookahead tells apart states that look the same in features. Served as Q8_0 in Ollama, each chose the same option as its bf16 weights on 50 of 50 validation states.
+
+**Agreement**, 1,000 held-out states. The oracle columns use section 11's states; the teacher column uses states drawn the same way from the teacher-labeled set.
+
+| Model | With the teacher | With the oracle (decisive) | Cross-entropy vs oracle | Latency p50 |
+|---|---|---|---|---|
+| `tev1:0.8b` | 34.3% | 31.8% (29.5%) | 1.22 | 73 ms |
+| `tev1:4b` | 38.2% | 38.4% (40.7%) | 1.29 | 205 ms |
+| `pacman-0.8b` | 59.0% | 53.9% (57.5%) | 1.05 | 59 ms |
+| C | 60.7% | 54.6% (57.3%) | 1.07 | 80 ms |
+| A | 61.9% | 55.3% (59.3%) | 1.11 | 55 ms |
+| B | 96.9% | 89.5% (96.1%) | 0.86 | 84 ms |
+
+**In-game**, seeds 100-109, 1x, 5-minute cap:
+
+| Player | Clock | Mean pellets | Mean score | Mean survival | Runs |
+|---|---|---|---|---|---|
+| `pacman-0.8b` | realtime | 386 | 6,348 | 81 s | 3 (456 from section 11; 300 and 400 rerun today) |
+| C | realtime | 406 | 6,103 | 86 s | 1 |
+| A | realtime | 425 | 7,866 | 86 s | 3 (441, 467, 366) |
+| A | lockstep | 417 | 7,649 | 86 s | 1 |
+| B | realtime | 765 | 11,865 | 191 s | 1 |
+| B | lockstep | 1,387 | 22,713 | 298 s | 1 (9 of 10 games reached the cap) |
+| Qwen3.8-27B with lookahead (teacher) | lockstep | 1,396 | 22,054 | 299 s | 1 |
+
+Per game, B ate 463, 1,215, 889, 662, 469, 535, 698, 839, 1,199, and 676 pellets in real time, and 1,452, 1,329, 1,396, 1,452, 1,347, 1,401, 1,398, 1,391, 1,215, and 1,484 in lockstep.
+
+**Generality**, the 194 JevBench items of section 15: B 0.61, A 0.53, `pacman-0.8b` 0.49, C 0.46, against 0.66 for `tev1:0.8b`.
+
+What this shows:
+
+- The teacher distills when the student sees what the teacher saw. B reproduces the teacher's choices on 96.9% of held-out states and its play in lockstep, at 85 ms per decision on the M3 Ultra instead of 309 ms on a 5090.
+- With features only, the teacher's labels make no difference. A and C land on `pacman-0.8b`'s level: the run-to-run spread is larger than the gaps between them. The student's ceiling is its input, not its teacher (conclusion 8).
+- All students side with the teacher more than with the oracle on the 104 states where the two disagree (`pacman-0.8b` 55% against 25%, B 84%). The sample is small.
+- B loses 45% of its pellets in real time. It seldom misreads the lookahead: where one option's rollout died and another survived, it chose a dying one in 2.0% of such states, against 12.8% for Jev in section 16. The cause of the realtime loss was not isolated; its training states come from lockstep play, not from its own realtime games.
+- Realtime results vary a lot between runs of the same model: `pacman-0.8b` scored 456, 300, and 400 in three 10-game runs. Today's runs shared the Mac with heavy unrelated CPU load (load average 15-36), so A and `pacman-0.8b` were alternated to face the same conditions. Compare realtime numbers within a day's runs, not across days.
+- The lookahead rollouts run inside the encoder and their 5-10 ms of CPU is not charged to game time, as in section 16.
+
 ## Conclusions
 
 1. Use `tev1:4b` for the real-time demo. At about 160 ms, a decision is shorter than the typical 400 ms to 1.2 s Pac-Man needs to reach the next junction at arcade speed.
@@ -369,7 +422,7 @@ Per game, Jev with lookahead ate 432, 730, 481, 418, 972, 966, 301, 671, 461, an
 5. Invest in the encoder before the model. Keep states compact and factual, and measure every encoder change in tokens as well as accuracy.
 6. Compare clocks before comparing players. All Qwen results are lockstep, where the game waits for each answer; Jev, the Tev1 models, and `pacman-0.8b` are realtime, where slow answers arrive after the junction has passed. Qwen without thinking (301 pellets) beating Jev (178) does not yet show it would at realtime.
 7. Do not argue cost against Jev. At the price seen on Vercel AI Gateway ($0.042 per million input tokens), a whole game of about 340 decisions at 605 tokens each costs under a cent. The case for a fine-tuned local model is task accuracy, latency, offline use, and control. The cost case holds against calling a large general model at every step.
-8. A stronger teacher may not make a stronger student. The student's ceiling is set by what it sees at inference time. Qwen with lookahead beats the oracle by reading rollouts the features-only student never sees, so relabeling with it may leave the student near its current plateau. A student given the same lookahead facts would test this; the rollouts take milliseconds of CPU.
+8. A stronger teacher may not make a stronger student. The student's ceiling is set by what it sees at inference time. Qwen with lookahead beats the oracle by reading rollouts the features-only student never sees, so relabeling with it may leave the student near its current plateau. A student given the same lookahead facts would test this; the rollouts take milliseconds of CPU. Section 18 confirms it: relabeling with the Qwen teacher did not change the features-only student, while a student given the lookahead matched the teacher.
 9. Treat a plain chat model with constrained JSON as the off-the-shelf baseline. On this task it matches or beats the decision models (Jev, `tev1:4b`) from the same facts, so the decision API is a convenience here, not a capability. `phi4-mini` is the fastest and strongest of those tried and returns probabilities. The fine-tuned `pacman-0.8b` still doubles it.
 
 ## Possible follow-ups (not planned)
