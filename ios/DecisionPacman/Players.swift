@@ -20,7 +20,7 @@ enum Player: String, CaseIterable, Identifiable, Sendable {
 
     var title: String {
         switch self {
-        case .finetuned: return "Fine-tuned 0.8B, on device"
+        case .finetuned: return "Distilled 0.8B (Qwen 27B teacher), on device"
         case .phi4Mini: return "phi4-mini 3.8B, on device"
         case .jev: return "Jev, cloud"
         }
@@ -29,8 +29,10 @@ enum Player: String, CaseIterable, Identifiable, Sendable {
     var isOnDevice: Bool { self != .jev }
 }
 
-/// Which model file each on-device player loads from the app's Documents. Defaults can be overridden
-/// with Documents/players.json, for example {"finetuned": "pacman-0.8b-v2.gguf", "phi4-mini-context": 2048}.
+/// Which model file each on-device player loads from the app's Documents. The fine-tuned player uses
+/// pacman-0.8b-qwen.gguf (distilled from the Qwen 27B teacher, current-state input only) and falls back to
+/// model.gguf. Defaults can be overridden with Documents/players.json, for example
+/// {"finetuned": "pacman-0.8b-v2.gguf", "phi4-mini-context": 2048}.
 struct PlayerConfig: Decodable {
     var finetuned: String?
     var phi4Mini: String?
@@ -54,11 +56,18 @@ struct PlayerConfig: Decodable {
     func modelFile(for player: Player) -> String? {
         let name: String?
         switch player {
-        case .finetuned: name = finetuned ?? "model.gguf"
+        case .finetuned: name = finetuned ?? Self.defaultFinetuned
         case .phi4Mini: name = phi4Mini ?? "phi4-mini.gguf"
         case .jev: name = nil
         }
         return name.map { URL(fileURLWithPath: $0).lastPathComponent }
+    }
+
+    /// The distilled student if it is on the device, otherwise the earlier oracle-trained model.
+    static var defaultFinetuned: String {
+        let distilled = "pacman-0.8b-qwen.gguf"
+        let path = EngineHost.documents.appendingPathComponent(distilled).path
+        return FileManager.default.fileExists(atPath: path) ? distilled : "model.gguf"
     }
 
     var chatContextLength: UInt32 {

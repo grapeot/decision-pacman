@@ -101,11 +101,11 @@ dev=<device-identifier>
 copy() { xcrun devicectl device copy to --device "$dev" --domain-type appDataContainer \
   --domain-identifier io.github.grapeot.decisionpacman --source "$1" --destination "Documents/$2"; }
 
-copy runs/ft_v1/pacman-0.8b-q8_0.gguf model.gguf      # the fine-tuned model (Q8_0, about 800 MB)
+copy runs/redistill/ft_q1/pacman-0.8b-qwen-q8_0.gguf pacman-0.8b-qwen.gguf   # distilled 0.8B (Q8_0, about 800 MB)
 copy "$(ollama show phi4-mini --modelfile | awk '/^FROM /{print $2}')" phi4-mini.gguf   # Q4_K_M, about 2.3 GB
 ```
 
-To try another fine-tuned model, copy it under its own name and point the app at it with `Documents/players.json`, for example `{"finetuned": "pacman-0.8b-v2.gguf"}`. The same file can name another phi4-mini file (`"phi4-mini"`) or set `"phi4-mini-context": 2048`, which saves about 300 MB but changes phi4-mini's answers (see `docs/working.md`).
+The fine-tuned player loads `pacman-0.8b-qwen.gguf` (the student distilled from the Qwen 27B teacher, current-state input only) and falls back to `model.gguf` (the earlier oracle-trained `pacman-0.8b`). All three players see the same current-state input. To try another fine-tuned model, copy it under its own name and point the app at it with `Documents/players.json`, for example `{"finetuned": "pacman-0.8b-v2.gguf"}`. The same file can name another phi4-mini file (`"phi4-mini"`) or set `"phi4-mini-context": 2048`, which saves about 300 MB but changes phi4-mini's answers (see `docs/working.md`).
 
 For Jev, put the API key in a temporary file, copy it, and delete it. Take the key from your password manager; do not paste it into a file you keep:
 
