@@ -17,6 +17,7 @@ A browser demo in which a local decision model (`/v1/systemone`, default `tev1:4
 - `src/render/`, `src/ui/`: browser-only code. Read engine state and never mutate game rules.
 - `scripts/`: headless runner, probe, and dev/build entrypoints. Scripts are the command contract; do not leave commands only in the README.
 - `tests/`: Vitest tests.
+- `ios/`: the iPhone app (xcodegen `project.yml`, Swift sources, build and Mac-check scripts). Models, keys, the llama.cpp xcframework, and the web build are not committed.
 
 ## Environment
 

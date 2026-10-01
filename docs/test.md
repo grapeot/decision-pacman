@@ -30,6 +30,13 @@ With `npm run dev` and Ollama running: the tick rate reads 30, probability bars 
 - Export smoke test: an untrained 0.8B export is served over `/v1/systemone` and answers the probe before any real training run.
 - Fine-tuned model: `scripts/probe_decision_models.py` plus the held-out realtime games in `docs/model_evaluation.md`.
 
+## iOS app
+
+- `ios/scripts/mac_check.sh decision <gguf>` runs the app's decision engine on the Mac over `ios/mac_check/bench_prompts.json` and compares with Ollama's probabilities (same choice on all, max difference about 0.0003).
+- `ios/scripts/mac_check.sh chat <gguf>` runs the chat engine over `ios/mac_check/chat_prompts.json`: every answer must be legal, and with phi4-mini's default context the moves and prompt token counts must match Ollama's recorded answers.
+- Compile for device without signing: `xcodebuild -project ios/DecisionPacman.xcodeproj -scheme DecisionPacman -destination "generic/platform=iOS" CODE_SIGNING_ALLOWED=NO build` (after `ios/scripts/build_web.sh` and `xcodegen generate` in `ios/`). The llama.cpp xcframework has no simulator slice.
+- On the phone: switch through all three players, read `Documents/game_status.json` for the active player, its load state, latency, and frame timing, and check that the previous model was freed (no memory warning or termination when switching to phi4-mini).
+
 ## E2E
 
 None in v1. The canvas output is checked by hand. A Playwright smoke test (page loads, the game advances in human mode, the error panel appears without Ollama) is worth adding once the UI settles.

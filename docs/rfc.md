@@ -48,6 +48,7 @@ Full method and numbers are in `docs/model_evaluation.md`. The constraints that 
 - `src/render/`, `src/ui/`: Canvas 2D drawing, HUD, controls, and error panel. They read engine state and never change it.
 - `scripts/`: headless runner, teacher data generation, dataset export, probes, recording, and dev/build/test entrypoints.
 - `training/`: Python (uv) scripts for LoRA fine-tuning, evaluation of the checkpoint, and GGUF export. They run on the GPU machine.
+- `ios/`: a SwiftUI app that serves the web build in a WKWebView and answers its decisions with llama.cpp on device or, for Jev, through a native HTTPS bridge (decision 10).
 
 ## Key decisions
 
@@ -88,6 +89,10 @@ The game is a canvas plus a small HUD, so a UI framework would add a second rend
 ### 9. Engine fidelity: faithful in behavior, not in cycles
 
 The engine uses the classic 28×31 tile layout, sub-tile movement, the four ghost targeting rules, timed scatter and chase phases, frightened mode with seeded random turns, the ghost house, and the tunnel. Speeds are level 1 arcade values in tiles per second, scaled by a speed multiplier. Frame-exact speed tables and arcade bugs are out of scope. Graphics are drawn in code.
+
+### 10. iPhone demo: one page, three players behind native bridges
+
+The app runs the same web game and the same prompts as the browser. The page renders each prompt and native code runs it, so prompt text has one implementation (TypeScript, unit-tested) and the Swift side stays small. The fine-tuned 0.8B is scored from option-letter logits, as Ollama's `/v1/systemone` does. phi4-mini is asked as `llm:phi4-mini` asks Ollama, with a GBNF grammar in place of Ollama's JSON schema, and checked against Ollama's recorded answers on the Mac. Jev goes through native code because the page's `app://local` origin cannot call the API directly and the key must stay out of the page; the endpoint is fixed in Swift so the page cannot send the key elsewhere. Only one on-device model is loaded at a time. Model files and the key are copied into the app's Documents, never bundled.
 
 ## Headless runner
 
