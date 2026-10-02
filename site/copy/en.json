@@ -61,8 +61,8 @@
     "mute": "Mute"
   },
   "paths": {
-    "title": "Still not satisfied? Two paths forward",
-    "lead": "Two different paths, each with its own trade-offs.",
+    "title": "Need more than an off-the-shelf model? Two paths",
+    "lead": "A plain open model gets you to Jev's level. To go beyond it, there are two paths, each with its own cost.",
     "a_title": "Customize for your task",
     "a_body": "Fine-tuning is no silver bullet, but it lets you make deliberate trade-offs across size, speed, cost, domain, and intelligence.",
     "b_title": "Move intelligence up",
@@ -82,12 +82,14 @@
     "note": "That is the trade-off: on 194 general decision questions unrelated to Pac-Man, it fell from 0.66 to 0.53. It was built for this one task."
   },
   "builder": {
-    "title": "From passive user to builder",
+    "title": "From user to builder",
     "closed_title": "Closed-source services",
     "closed_body": "You use them when they work. When they fail, your only choice is switching providers.",
     "yours_title": "Your own model",
     "yours_body": "Size, speed, cost, domain, and intelligence: you can adjust every single dial yourself.",
-    "quote": "Being able to build and choosing not to is very different from having no other choice."
+    "quote": "Being able to build and choosing not to is very different from having no other choice.",
+    "axis_speed": "speed",
+    "axis_skill": "capability"
   },
   "cta": {
     "title": "Ready to move from user to builder?",
