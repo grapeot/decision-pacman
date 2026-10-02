@@ -73,11 +73,10 @@ function applyCopy(): void {
 function setLang(next: Lang): void {
   lang = next;
   saveLang(next);
+  // Keep the choice in the address bar, so a copied link opens in the same language.
   const url = new URL(location.href);
-  if (url.searchParams.has("lang")) {
-    url.searchParams.set("lang", next);
-    history.replaceState(null, "", url);
-  }
+  url.searchParams.set("lang", next);
+  history.replaceState(null, "", url);
   applyCopy();
 }
 
