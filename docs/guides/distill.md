@@ -74,7 +74,7 @@ The script merges the adapter in the current (training) environment, writes the 
 
 ## 5. Import into Ollama
 
-The model must be served with exactly the system prompt it was trained under: the `SYSTEM` string in `training/prompt.py`, including the leading and trailing newlines. Ollama 0.35.0 rejects `CAPABILITY` in a Modelfile, but it serves `/v1/systemone` for the imported model anyway.
+The model must be served with exactly the system prompt it was trained under: the `SYSTEM` string in `training/prompt.py`, including the leading and trailing newlines. Ollama 0.35.1 and later serve `/v1/systemone` only for models that declare the decision capability; the `/api/create` request below sets it with `"capabilities": ["decision"]`. (Ollama 0.35.0 rejects `CAPABILITY` in a Modelfile but serves `/v1/systemone` without it.)
 
 The commands below create the model through Ollama's HTTP API (`/api/create`), taking the system prompt straight from `training/prompt.py`:
 
@@ -97,7 +97,7 @@ EOF
 curl http://localhost:11434/api/create -d @create.json
 ```
 
-The published model takes the other route: its Modelfile on Hugging Face (`Modelfile.pacman-0.8b-qwen`) names the GGUF in `FROM`, sets `TEMPLATE {{ .Prompt }}`, and carries the same system prompt, for `ollama create pacman-0.8b-qwen -f Modelfile.pacman-0.8b-qwen`. Imported that way, it gave the same choices and probabilities as the evaluated model on 100 validation states.
+The published model takes the other route: its Modelfile on Hugging Face (`Modelfile.pacman-0.8b-qwen`) names the GGUF in `FROM`, sets `TEMPLATE {{ .Prompt }}`, and carries the same system prompt, for `ollama create pacman-0.8b-qwen -f Modelfile.pacman-0.8b-qwen`. It has no `CAPABILITY decision` line, so on Ollama 0.35.1 and later append one first, as [run-models.md](run-models.md) shows. Imported that way, it gave the same choices and probabilities as the evaluated model on 100 validation states.
 
 Check the result with `python3 scripts/probe_decision_models.py pacman-0.8b-qwen`.
 
