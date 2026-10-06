@@ -58,10 +58,11 @@ To play the distilled 0.8B, download it from [Hugging Face](https://huggingface.
 
 ```bash
 hf download grapeot/decision-pacman-0.8b-GGUF pacman-0.8b-qwen-Q8_0.gguf Modelfile.pacman-0.8b-qwen --local-dir .
+echo 'CAPABILITY decision' >> Modelfile.pacman-0.8b-qwen
 ollama create pacman-0.8b-qwen -f Modelfile.pacman-0.8b-qwen
 ```
 
-Then open `http://localhost:5173/?model=pacman-0.8b-qwen`. The GGUF (Q8_0, 795 MB) is the evaluated model, and the Modelfile carries the system prompt it was trained under. Ollama copies the weights into its own store, so the downloaded files can be deleted afterwards.
+Then open `http://localhost:5173/?model=pacman-0.8b-qwen`. The GGUF (Q8_0, 795 MB) is the evaluated model, and the Modelfile carries the system prompt it was trained under. Ollama copies the weights into its own store, so the downloaded files can be deleted afterwards. Ollama 0.35.1 and later serve `/v1/systemone` only for models that declare `CAPABILITY decision`, which the published Modelfile lacks (Ollama 0.35.0 rejected the line); the `echo` adds it. On 0.35.0, skip the `echo`. If you imported the model before upgrading Ollama and it now answers "does not support decision", add the capability in place: `printf 'FROM pacman-0.8b-qwen\nCAPABILITY decision\n' > Modelfile.decision && ollama create pacman-0.8b-qwen -f Modelfile.decision`.
 
 ## iPhone
 
@@ -90,6 +91,7 @@ Then open `http://localhost:5173/?model=pacman-0.8b-qwen`. The GGUF (Q8_0, 795 M
 - [docs/guides/evaluate.md](docs/guides/evaluate.md): Evaluation protocol, seeds, clocks, variance, and scoring scripts.
 - [docs/guides/distill.md](docs/guides/distill.md): Label, train, export, import, and score a fine-tuned model (requires a CUDA GPU).
 - [docs/guides/teacher-api.md](docs/guides/teacher-api.md): Label states with a hosted Qwen3.8-27B instead of a local GPU: providers, prices, settings, and measured cost.
+- [docs/guides/distill-mlx.md](docs/guides/distill-mlx.md): Train and export the same model on an Apple-silicon Mac with MLX, with measured time and memory.
 - [docs/guides/iphone.md](docs/guides/iphone.md): Build and run the native iOS app with three selectable players.
 - [docs/results.md](docs/results.md): Canonical current numbers, hardware details, caveats, and the lookahead rule.
 - [docs/model_evaluation.md](docs/model_evaluation.md): Chronological lab notebook across experiments 1 through 18.

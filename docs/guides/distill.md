@@ -2,7 +2,7 @@
 
 The distilled `pacman-0.8b-qwen` is published on Hugging Face at [grapeot/decision-pacman-0.8b-GGUF](https://huggingface.co/grapeot/decision-pacman-0.8b-GGUF). To play it, you need no GPU: download and import it as in [run-models.md](run-models.md). This guide rebuilds it from scratch: label states with an LLM teacher, train, export, import into Ollama, and score. The training data is not in the repository.
 
-Training requires a CUDA GPU (the published run used one RTX 5090). Labeling requires an OpenAI-compatible chat endpoint serving a capable model (the published run used Qwen3.8-27B NVFP4); a hosted API serving the same model works too, see [teacher-api.md](teacher-api.md).
+Training requires a CUDA GPU (the published run used one RTX 5090), or an Apple-silicon Mac with MLX: [distill-mlx.md](distill-mlx.md) replaces steps 3 and 4 below. Labeling requires an OpenAI-compatible chat endpoint serving a capable model (the published run used Qwen3.8-27B NVFP4); a hosted API serving the same model works too, see [teacher-api.md](teacher-api.md).
 
 ## Overview
 
@@ -60,7 +60,7 @@ CUDA_VISIBLE_DEVICES=0 python training/train.py --data data/sft_q1 --out runs/ft
 
 The script defaults to `--base Qwen/Qwen3.5-0.8B`, `--batch 32`, `--lr 1e-4`, `--rank 16`, `--alpha 32`, and `--epochs 1.0`. The published model was trained with `--epochs 2`.
 
-On one RTX 5090, training takes about 32 minutes for 1,974 steps. The script writes the LoRA adapter to `<out>/adapter`.
+On one RTX 5090, training takes about 32 minutes for 1,974 steps. The script writes the LoRA adapter to `<out>/adapter`. To train on a Mac instead, see [distill-mlx.md](distill-mlx.md).
 
 ## 4. Export to GGUF
 
@@ -74,7 +74,7 @@ The script merges the adapter in the current (training) environment, writes the 
 
 ## 5. Import into Ollama
 
-The model must be served with exactly the system prompt it was trained under: the `SYSTEM` string in `training/prompt.py`, including the leading and trailing newlines. Ollama 0.35.0 rejects `CAPABILITY` in a Modelfile, but it serves `/v1/systemone` for the imported model anyway.
+The model must be served with exactly the system prompt it was trained under: the `SYSTEM` string in `training/prompt.py`, including the leading and trailing newlines. Ollama 0.35.1 and later serve `/v1/systemone` only for models that declare the decision capability; the `/api/create` request below sets it with `"capabilities": ["decision"]`. (Ollama 0.35.0 rejects `CAPABILITY` in a Modelfile but serves `/v1/systemone` without it.)
 
 The commands below create the model through Ollama's HTTP API (`/api/create`), taking the system prompt straight from `training/prompt.py`:
 
@@ -97,7 +97,7 @@ EOF
 curl http://localhost:11434/api/create -d @create.json
 ```
 
-The published model takes the other route: its Modelfile on Hugging Face (`Modelfile.pacman-0.8b-qwen`) names the GGUF in `FROM`, sets `TEMPLATE {{ .Prompt }}`, and carries the same system prompt, for `ollama create pacman-0.8b-qwen -f Modelfile.pacman-0.8b-qwen`. Imported that way, it gave the same choices and probabilities as the evaluated model on 100 validation states.
+The published model takes the other route: its Modelfile on Hugging Face (`Modelfile.pacman-0.8b-qwen`) names the GGUF in `FROM`, sets `TEMPLATE {{ .Prompt }}`, and carries the same system prompt, for `ollama create pacman-0.8b-qwen -f Modelfile.pacman-0.8b-qwen`. It has no `CAPABILITY decision` line, so on Ollama 0.35.1 and later append one first, as [run-models.md](run-models.md) shows. Imported that way, it gave the same choices and probabilities as the evaluated model on 100 validation states.
 
 Check the result with `python3 scripts/probe_decision_models.py pacman-0.8b-qwen`.
 

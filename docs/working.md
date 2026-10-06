@@ -210,9 +210,19 @@
 - DeepSeek V4.1 Flash on Ollama Cloud (`deepseek-v4.1-flash`, `reasoning_effort: none`), features + 5 s rollout facts, greedy seed 2000, 22 states, concurrency 1: 455.4 input and 31.3 output tokens per request, 0.60 s p50 and 0.78 s p90, 0 failures, 21 of 22 the same as the Qwen3.8-27B labels. At $0.15/$0.60 per million off-peak, $0.087 per 1,000 requests; 54,325 requests about $4.73 off-peak, $9.46 peak.
 - Published prices for Qwen3.8-27B on 2026-10-05, applied to DeepSeek's measured token counts as an estimate, put the 54,325-request run between about $6.90 (DeepInfra) and about $27 (Groq, Cerebras).
 
+### 2026-10-05 (training the student on a Mac with MLX)
+
+- Added the Apple-silicon training path: `training/train_mlx.py` (same rows, prompt, letter-only loss, LoRA rank 16 / alpha 32, lr 1e-4, batch 32, row order as `train.py`), `merge_mlx.py`, `export_gguf_mlx.sh`, `score_mlx.py`, `test_train_mlx.py`, `requirements-mlx.txt` (`mlx` 0.32.3, `mlx-lm` 0.32.0), and `docs/guides/distill-mlx.md`. Results in section 20 of `model_evaluation.md`.
+- M3 Ultra (80-core GPU, 512 GB), Mac otherwise idle: one epoch (987 steps) in 74.5 minutes of training loop (4.22 s per step, 2,807 prompt tokens per second, peak 47.8 GB at micro-batch 16), against 0.87 s per step on the RTX 5090. Final validation agreement 59.6% (5090 two-epoch run: 61.9%). A two-epoch run ran 1,600 steps at 4.13 s per step before the launching tool's time limit killed it; its validation agreement was flat at 59-60% from step 600.
+- Served as Q8_0 in Ollama 0.35.1 (`pacman-0.8b-qwen-mlx`): same choice as the MLX weights on 49 of 50 states; agreement with the teacher on 1,000 held-out states 59.4% against 61.9% for `pacman-0.8b-qwen`, both 52 ms p50.
+- In-game, seeds 100-109, features, M3 Ultra, Ollama 0.35.1, the two models alternated (load average 6-12): `pacman-0.8b-qwen-mlx` realtime 343, 413, 359 (mean 371, p50 53 ms), lockstep 352; `pacman-0.8b-qwen` realtime 366, 403, 511 (mean 427, p50 53 ms), lockstep 417 (same as section 18).
+- Ollama 0.35.1 answers `/v1/systemone` with "does not support decision" for a model without `CAPABILITY decision`, including `pacman-0.8b-qwen` imported under 0.35.0. `/api/create` with `"capabilities": ["decision"]`, or a Modelfile with `CAPABILITY decision` (including `FROM <existing model>` plus that line), fixes it without touching the weights.
+
 ## Lessons Learned
 - Hosted APIs ignore `chat_template_kwargs`. A request that turns thinking off on vLLM leaves it on at OpenRouter, Vercel AI Gateway, or Ollama Cloud, where it eats the 200-token answer budget. Send each API's own switch and check that reasoning tokens are 0.
 
+- MLX is not torch with another backend. Check optimizer defaults (MLX's AdamW has `bias_correction=False` and `weight_decay=0.01`), cap the buffer cache when shapes vary between steps, and check gradients of new code against a reference, not just outputs: in `mlx` 0.32.3 a step-2 slice over an axis of length 2 has a wrong gradient and a right forward value.
+- Launch runs of more than an hour detached from the agent tool that starts them, and checkpoint them: a run stopped by a tool's time limit after 1,600 of 1,974 steps left no adapter.
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.
 - On the full ASCII board, nimble's confidence stayed between 0.00 and 0.09. On per-direction facts it chose the obvious move with probability ~0.99. The representation matters more than the model size between nimble and tev1:4b.
 - tev1:0.8b is fast but near chance on simple situations. Do not make it the default.

@@ -9,13 +9,13 @@ A browser demo in which a local decision model (`/v1/systemone`, default `tev1:4
 - `docs/test.md`: what counts as verified.
 - `docs/model_evaluation.md`: evaluation method, results, and conclusions. Add in-game results here.
 - `docs/results.md`: current numbers and caveats. Update it when a headline number changes, and keep lookahead results out of the ladder.
-- `docs/guides/`: how-to guides (run models, evaluate, distill, iPhone). Update them when a command or flag changes.
+- `docs/guides/`: how-to guides (run models, evaluate, distill on CUDA or on a Mac with MLX, iPhone). Update them when a command or flag changes.
 - `docs/working.md`: daily changelog plus lessons learned. Update it at the end of every working session.
 - `src/engine/`: pure, deterministic game logic. No DOM, no timers, no network, no `Math.random` (use the seeded RNG).
 - `src/encoders/`: state-to-text encoders. They report facts and never verdicts (see RFC decision 5).
 - `src/agent/`: agent loop, policies, and the `/v1/systemone` client.
 - `src/agent/oracle.ts`: engine rollouts that the teacher (`teacher-peek5s`) sees at labeling time.
-- `training/`: Python fine-tuning and export scripts (uv `.venv`), run on the GPU machine.
+- `training/`: Python fine-tuning and export scripts (uv `.venv`), run on the GPU machine. The `*_mlx` scripts are the Apple-silicon path (`requirements-mlx.txt`).
 - `src/render/`, `src/main.ts`, `src/audio/`: browser-only code. Read engine state and never mutate game rules.
 - `scripts/`: headless runner, probe, and dev/build entrypoints. Scripts are the command contract; do not leave commands only in the README.
 - `tests/`: Vitest tests.

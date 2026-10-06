@@ -427,6 +427,69 @@ Question: without the RTX 5090, what does labeling the 54,325 requests of sectio
 - Qwen3.8-27B itself is served by at least eight providers; at DeepSeek's measured token counts (an estimate for Qwen's tokenizer) the same run would cost about $6.90 at DeepInfra up to about $27 at Groq or Cerebras.
 - The agreement column is a small sample (95% interval 78-99%) and shows that the prompt and answer format carry over, not that the model labels as well as the section 18 teacher. A student trained on another teacher's labels is a new model and needs its own evaluation.
 
+### 20. Training the student on a Mac with MLX
+
+Section 18 trained `pacman-0.8b-qwen` on one RTX 5090 in 32 minutes. This experiment retrains it on the Mac Studio that runs the games (Apple M3 Ultra, 80-core GPU, 512 GB, macOS 27.0) with MLX (`mlx` 0.32.3, `mlx-lm` 0.32.0), to measure the cost of the Mac path. The steps are in [guides/distill-mlx.md](guides/distill-mlx.md).
+
+**Recipe.** `training/train_mlx.py` keeps section 18's student A: the same 31,570 training and 4,973 validation rows, the same prompt, the letter-only cross-entropy loss, LoRA rank 16 with scale 2.0 (alpha 32) on the same layers, AdamW at lr 1e-4 with warmup and cosine, gradient clipping at 1.0, batch 32, and the same row order. Each step runs as two micro-batches of 16 with averaged gradients. The run that was evaluated trained for one epoch (987 steps) instead of two.
+
+**Three things had to change to get there.**
+
+- `mlx-lm` 0.32 trains Qwen3.5's Gated DeltaNet layers with a loop over every token that keeps a float32 state per token for the backward pass. At batch 32 it was killed for memory; with 8-row micro-batches and gradient checkpointing it ran at 32 s per step, about 17.5 hours for two epochs. The script replaces it in training with the chunked form of the same recurrence (the algorithm of the torch fallback the 5090 ran), which matches `mlx-lm`'s loop to about 1e-7 in outputs and 1e-5 in gradients and runs at about 4 s per step. Writing it exposed a bug in `mlx` 0.32.3: the gradient of a step-2 slice over an axis of length 2 is wrong, silently.
+- MLX's buffer cache grew by about 50 GB per step, because batches pad to different lengths, until macOS killed the process. A 4 GB cache limit holds memory flat.
+- MLX's AdamW does not correct its moment estimates for their zero start unless asked (`bias_correction=False` by default); torch's always does. Without the correction the first few hundred updates are several times larger, and after 200 steps validation agreement was 39.8% against the 5090 run's 57.2%. With it, 53.5%.
+
+**Training**, agreement with the teacher's label on the first 2,000 validation rows, as `train.py` logs it:
+
+| Step | 0 | 200 | 400 | 600 | 800 | 1,000 | 1,200 | 1,400 | 1,600 | 1,800 | 1,974 |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| RTX 5090, 2 epochs | 30.8% | 57.2% | 56.6% | 57.6% | 57.6% | 58.3% | 60.2% | 60.9% | 61.0% | 61.7% | 61.9% |
+| M3 Ultra, 2 epochs (stopped at step 1,600) | 31.3% | 53.5% | 57.5% | 59.6% | 57.3% | 59.6% | 59.7% | 59.3% | | | |
+| M3 Ultra, 1 epoch | 31.3% | 55.3% | 56.6% | 58.9% | 59.4% | 59.6% (step 987) | | | | | |
+
+The two-epoch Mac run was stopped by the tool that launched it, after 1,600 steps and before it saved an adapter; its curve had been flat since step 600, and the one-epoch run, whose cosine reaches zero at step 987, ended at the same level (59.6%, cross-entropy 0.979 against 0.966 for the 5090 run). The 5090 run gained about 3.6 points between steps 1,000 and 1,974, mostly as its learning rate fell; whether a full two-epoch Mac run would gain the same was not measured.
+
+**Time and memory** (one-epoch run, Mac otherwise idle, load average 3-6):
+
+| | M3 Ultra, MLX | RTX 5090, Unsloth |
+|---|---|---|
+| Steps | 987 (1 epoch) | 1,974 (2 epochs) |
+| Seconds per step | 4.22 | 0.87 |
+| Training loop, including validation checks | 74.5 min (5 checks, 5.1 min) | 31 min (10 checks) |
+| Whole process, including model load, tokenizing, and the first check | 75.8 min | about 32 min |
+| Prompt tokens per second | 2,807 | |
+| Peak GPU memory | 47.8 GB (micro-batch 16) | |
+| Merge and Q8_0 export | 14 s | |
+
+The two-epoch Mac run ran at 4.13 s per step over its 1,600 steps (on a shared Mac, load average up to about 40), so two epochs would take about 2 hours 26 minutes. Smaller micro-batches with gradient checkpointing cut peak memory to 4.6 GB at about 2,350 tokens per second (3-step measurements in the guide).
+
+**Serving.** Merged into the base checkpoint, exported to Q8_0 (795 MB), and imported into Ollama 0.35.1 as `pacman-0.8b-qwen-mlx`, it chose the same option as its MLX weights on 49 of 50 validation states (largest probability difference 0.04). Ollama 0.35.1 serves `/v1/systemone` only for models that declare the decision capability, and the published model, imported under 0.35.0, did not; for the comparison it was re-created from itself with `CAPABILITY decision` added, which changes no weights.
+
+**Agreement**, 1,000 held-out states, served Q8_0, measured the same evening:
+
+| Model | With the teacher | Cross-entropy | Latency p50 |
+|---|---|---|---|
+| `pacman-0.8b-qwen` (5090, 2 epochs) | 61.9% | 0.88 | 52 ms |
+| MLX, 1 epoch | 59.4% | 0.91 | 52 ms |
+
+**In-game**, seeds 100-109, 1x, 5-minute cap, the two models alternated in one session (load average 6-12):
+
+| Player | Clock | Mean pellets | Mean score | Mean survival | Runs |
+|---|---|---|---|---|---|
+| `pacman-0.8b-qwen` | realtime | 427 | 7,820 | 86 s | 3 (366, 403, 511) |
+| MLX, 1 epoch | realtime | 371 | 6,025 | 69 s | 3 (343, 413, 359) |
+| `pacman-0.8b-qwen` | lockstep | 417 | 7,649 | 86 s | 1 |
+| MLX, 1 epoch | lockstep | 352 | 5,949 | 70 s | 1 |
+
+Decision p50 was 53 ms for both in real time. Paired by seed and run, the realtime difference is -55 pellets per game with a standard error of 34. Per game in lockstep, the MLX student ate 382, 217, 233, 243, 229, 447, 849, 240, 443, and 238 pellets; `pacman-0.8b-qwen` ate 468, 455, 233, 432, 212, 308, 416, 480, 439, and 730.
+
+What this shows:
+
+- The Mac can train this student in about an hour and a quarter per epoch, at about 5 times the 5090's time per step. It needs about 48 GB of GPU memory at the measured settings, or under 5 GB with gradient checkpointing at a further cost in speed.
+- The training path needed three fixes beyond porting the loss: a chunked Gated DeltaNet recurrence, a cache limit, and Adam's bias correction. The last one changes results silently: the run still trains, only worse.
+- The one-epoch student is a little weaker than the published two-epoch one: 2.5 points lower agreement with the teacher, 55 fewer pellets per realtime game (about 1.6 standard errors), and 65 fewer in lockstep. It plays at the level of `pacman-0.8b` (386) and student C (406) of section 18. The likely cause is the shorter schedule, since the 5090 run gained 3.6 points of validation agreement in its second epoch; the Mac two-epoch run showed no such gain through step 1,400, before its learning rate had fallen far, so this is not settled.
+- The published model reproduced its section 18 numbers on Ollama 0.35.1 once the decision capability was declared: 61.9% agreement and 417 pellets in lockstep exactly, and 427 in real time against 425.
+
 ## Conclusions
 
 1. Use `tev1:4b` for the real-time demo. At about 160 ms, a decision is shorter than the typical 400 ms to 1.2 s Pac-Man needs to reach the next junction at arcade speed.

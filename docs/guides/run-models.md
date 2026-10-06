@@ -46,9 +46,10 @@ The headless runner writes outputs to `runs/<tag>/`:
 The distilled model is published on Hugging Face at [grapeot/decision-pacman-0.8b-GGUF](https://huggingface.co/grapeot/decision-pacman-0.8b-GGUF). It runs on the same Ollama as the other decision models, with no GPU. Download the GGUF and its Modelfile, and import them:
 ```bash
 hf download grapeot/decision-pacman-0.8b-GGUF pacman-0.8b-qwen-Q8_0.gguf Modelfile.pacman-0.8b-qwen --local-dir .
+echo 'CAPABILITY decision' >> Modelfile.pacman-0.8b-qwen
 ollama create pacman-0.8b-qwen -f Modelfile.pacman-0.8b-qwen
 ```
-The `hf` command comes with `huggingface_hub` (`pip install -U huggingface_hub`). `pacman-0.8b-qwen-Q8_0.gguf` (795 MB) is the evaluated model. The Modelfile names the GGUF in `FROM`, sets `TEMPLATE {{ .Prompt }}`, and carries the system prompt from `training/prompt.py`, the one the model was trained under. Imported this way, it gave the same choices and probabilities as the evaluated model on 100 validation states. Ollama copies the weights into its own store, so the downloaded files can be deleted afterwards.
+The `hf` command comes with `huggingface_hub` (`pip install -U huggingface_hub`). `pacman-0.8b-qwen-Q8_0.gguf` (795 MB) is the evaluated model. The Modelfile names the GGUF in `FROM`, sets `TEMPLATE {{ .Prompt }}`, and carries the system prompt from `training/prompt.py`, the one the model was trained under. Imported this way, it gave the same choices and probabilities as the evaluated model on 100 validation states. Ollama copies the weights into its own store, so the downloaded files can be deleted afterwards. Ollama 0.35.1 and later serve `/v1/systemone` only for models that declare `CAPABILITY decision`, which the published Modelfile lacks (Ollama 0.35.0 rejected the line); the `echo` adds it. On 0.35.0, skip the `echo`. If you imported the model before upgrading Ollama and it now answers "does not support decision", add the capability in place: `printf 'FROM pacman-0.8b-qwen\nCAPABILITY decision\n' > Modelfile.decision && ollama create pacman-0.8b-qwen -f Modelfile.decision`.
 
 Run it by model name:
 ```bash
