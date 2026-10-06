@@ -2,7 +2,7 @@
 
 The distilled `pacman-0.8b-qwen` is published on Hugging Face at [grapeot/decision-pacman-0.8b-GGUF](https://huggingface.co/grapeot/decision-pacman-0.8b-GGUF). To play it, you need no GPU: download and import it as in [run-models.md](run-models.md). This guide rebuilds it from scratch: label states with an LLM teacher, train, export, import into Ollama, and score. The training data is not in the repository.
 
-Training requires a CUDA GPU (the published run used one RTX 5090). Labeling requires an OpenAI-compatible chat endpoint serving a capable model (the published run used Qwen3.8-27B NVFP4).
+Training requires a CUDA GPU (the published run used one RTX 5090). Labeling requires an OpenAI-compatible chat endpoint serving a capable model (the published run used Qwen3.8-27B NVFP4); a hosted API serving the same model works too, see [teacher-api.md](teacher-api.md).
 
 ## Overview
 
@@ -14,7 +14,7 @@ A player drives the game in lockstep. At every decision, the data generator stor
 
 Data generation runs the game in lockstep using `scripts/gen_teacher_data.ts` (`npm run gen-data -- ...`).
 
-Set `TEACHER_BASE_URL` and `TEACHER_MODEL` in `.env` (see `.env.example`). Run three players across the training seeds into `data/q1/train`, and across the validation seeds into `data/q1/val`, all labeled by the teacher:
+Set `TEACHER_BASE_URL` and `TEACHER_MODEL` in `.env` (see `.env.example`). To label without a GPU, point them at a hosted API as described in [teacher-api.md](teacher-api.md); hosted APIs also need `TEACHER_API_KEY` and a switch that turns thinking off. Run three players across the training seeds into `data/q1/train`, and across the validation seeds into `data/q1/val`, all labeled by the teacher:
 
 ```bash
 npm run gen-data -- --player oracle-5s --labeler teacher-peek5s --games 20 --seed 1000 --out data/q1/train

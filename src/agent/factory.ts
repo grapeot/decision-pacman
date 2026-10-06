@@ -7,6 +7,12 @@ export interface PolicyEnv {
   decisionBaseUrl: string;
   teacherBaseUrl?: string;
   teacherModel?: string;
+  /** TEACHER_API_KEY, for hosted endpoints. */
+  teacherApiKey?: string;
+  /** TEACHER_EXTRA_BODY parsed as JSON: fields merged into every teacher request. */
+  teacherExtraBody?: Record<string, unknown>;
+  /** TEACHER_MAX_RETRIES: retries after HTTP 429 or 5xx (default 0). */
+  teacherMaxRetries?: number;
   /** Shared by every teacher policy made with this env: identical prompts are asked once. */
   teacherCache?: Map<string, TeacherDecision>;
 }
@@ -40,6 +46,9 @@ export function makePolicy(name: string, seed: number, env: PolicyEnv): Policy {
     return teacherPolicy({
       baseUrl: env.teacherBaseUrl,
       model: env.teacherModel,
+      apiKey: env.teacherApiKey,
+      extraBody: env.teacherExtraBody,
+      maxRetries: env.teacherMaxRetries,
       think: !!teacher[1],
       peekSeconds: teacher[2] ? Number(teacher[2]) : undefined,
       cache: env.teacherCache,
@@ -62,5 +71,15 @@ export function policyEnvFromProcess(): PolicyEnv {
     decisionBaseUrl: process.env.VITE_DECISION_BASE_URL ?? "http://localhost:11434",
     teacherBaseUrl: process.env.TEACHER_BASE_URL,
     teacherModel: process.env.TEACHER_MODEL,
+    teacherApiKey: process.env.TEACHER_API_KEY || undefined,
+    teacherExtraBody: parseExtraBody(process.env.TEACHER_EXTRA_BODY),
+    teacherMaxRetries: process.env.TEACHER_MAX_RETRIES ? Number(process.env.TEACHER_MAX_RETRIES) : undefined,
   };
+}
+
+function parseExtraBody(raw: string | undefined): Record<string, unknown> | undefined {
+  if (!raw?.trim()) return undefined;
+  const parsed: unknown = JSON.parse(raw);
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("TEACHER_EXTRA_BODY must be a JSON object");
+  return parsed as Record<string, unknown>;
 }

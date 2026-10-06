@@ -414,6 +414,19 @@ What this shows:
 - Realtime results vary a lot between runs of the same model: `pacman-0.8b` scored 456, 300, and 400 in three 10-game runs. Today's runs shared the Mac with heavy unrelated CPU load (load average 15-36), so A and `pacman-0.8b` were alternated to face the same conditions. Compare realtime numbers within a day's runs, not across days.
 - The lookahead rollouts run inside the encoder and their 5-10 ms of CPU is not charged to game time, as in section 16.
 
+### 19. A hosted teacher instead of the 5090
+
+Question: without the RTX 5090, what does labeling the 54,325 requests of section 18 cost through a hosted API, and does the setup carry over? The run used the `teacher-peek5s` prompt of section 18 (features plus 5 s rollout facts), thinking off through each API's own switch, temperature 0, and `gen-data --label-every`, which asks the teacher on every k-th decision of a full game. DeepSeek V4.1 Flash is not the section 18 teacher. Details, provider prices, and commands are in [guides/teacher-api.md](guides/teacher-api.md).
+
+| Teacher (route) | States | Input / output tokens per request | Latency p50 | Failed answers | Same move as the section 18 labels | Projected cost, 54,325 requests |
+|---|---|---|---|---|---|---|
+| DeepSeek V4.1 Flash (Ollama Cloud) | 22 (greedy, seed 2000) | 455 / 31 | 0.60 s | 0 | 21 of 22 | $4.73 off-peak, $9.46 peak |
+
+- Hosted APIs ignore the `chat_template_kwargs` switch the teacher sends to a local server, and hosted models can think by default, which spends output tokens before the answer. The teacher now takes `TEACHER_EXTRA_BODY` for each API's switch, plus `TEACHER_API_KEY` and retries on HTTP 429.
+- Input and output contribute about equally to the bill: about 455 input tokens against 31 output tokens, at output prices 4-12 times input prices.
+- Qwen3.8-27B itself is served by at least eight providers; at DeepSeek's measured token counts (an estimate for Qwen's tokenizer) the same run would cost about $6.90 at DeepInfra up to about $27 at Groq or Cerebras.
+- The agreement column is a small sample (95% interval 78-99%) and shows that the prompt and answer format carry over, not that the model labels as well as the section 18 teacher. A student trained on another teacher's labels is a new model and needs its own evaluation.
+
 ## Conclusions
 
 1. Use `tev1:4b` for the real-time demo. At about 160 ms, a decision is shorter than the typical 400 ms to 1.2 s Pac-Man needs to reach the next junction at arcade speed.
