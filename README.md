@@ -89,6 +89,7 @@ Then open `http://localhost:5173/?model=pacman-0.8b-qwen`. The GGUF (Q8_0, 795 M
 - [docs/guides/run-models.md](docs/guides/run-models.md): Play any model in the browser or headless runner.
 - [docs/guides/evaluate.md](docs/guides/evaluate.md): Evaluation protocol, seeds, clocks, variance, and scoring scripts.
 - [docs/guides/distill.md](docs/guides/distill.md): Label, train, export, import, and score a fine-tuned model (requires a CUDA GPU).
+- [docs/guides/teacher-api.md](docs/guides/teacher-api.md): Label states with a hosted Qwen3.8-27B instead of a local GPU: providers, prices, settings, and measured cost.
 - [docs/guides/iphone.md](docs/guides/iphone.md): Build and run the native iOS app with three selectable players.
 - [docs/results.md](docs/results.md): Canonical current numbers, hardware details, caveats, and the lookahead rule.
 - [docs/model_evaluation.md](docs/model_evaluation.md): Chronological lab notebook across experiments 1 through 18.

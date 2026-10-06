@@ -204,7 +204,15 @@
 - Recorded `docs/media/demo_phi4_mini.mp4` (browser, seed 100, 1x, 30 s, `llm:phi4-mini`, features, M3 Ultra under unrelated background load, load average about 17-20): score 1,710, 143 pellets, two lives lost, p50 about 150 ms per decision. A short throwaway take warmed Vite's dependency cache first, so the clip opens on the game.
 - Added `docs/media/iphone_pacman_08b_qwen.mp4`, a 29-second screen recording of `pacman-0.8b-qwen` on the iPhone 16 Pro Max (1x, random seed, status bar cropped): about 505 ms per decision, 25-28% late answers, score 2,500, 174 pellets, no lives lost. README, `results.md`, and the iPhone guide link both clips.
 
+### 2026-10-05 (hosted teacher)
+
+- Added hosted-API support to the teacher: `TEACHER_API_KEY` (bearer), `TEACHER_EXTRA_BODY` (JSON merged into each request, for each API's thinking switch and provider pinning), and `TEACHER_MAX_RETRIES` (retries on 429/5xx, honoring Retry-After). `gen-data` records input, output, and reasoning tokens and any reported cost per request, and takes `--label-every k`. Added `scripts/compare_teacher_labels.py`, which joins two runs on player, seed, and tick and projects cost.
+- DeepSeek V4.1 Flash on Ollama Cloud (`deepseek-v4.1-flash`, `reasoning_effort: none`), features + 5 s rollout facts, greedy seed 2000, 22 states, concurrency 1: 455.4 input and 31.3 output tokens per request, 0.60 s p50 and 0.78 s p90, 0 failures, 21 of 22 the same as the Qwen3.8-27B labels. At $0.15/$0.60 per million off-peak, $0.087 per 1,000 requests; 54,325 requests about $4.73 off-peak, $9.46 peak.
+- Qwen3.6-27B through Vercel AI Gateway (Alibaba), same prompt, 72 states over seeds 1000-1001, 2000-2001, 3000-3004: 466.7 input and 35.2 output tokens per request, 2.0 s p50, 0 failures, 69 of 72 the same as the Qwen3.8-27B labels, $0.000407 per request as reported by the gateway. Stopped early: Qwen3.6 is weaker than the published teacher, and the token counts were the point. The free tier allows 5 requests per minute on this model and refuses Qwen3.8-27B.
+- Published prices for Qwen3.8-27B on 2026-10-05 put the 54,325-request run between $7.39 (DeepInfra) and about $28 (Groq, Cerebras).
+
 ## Lessons Learned
+- Hosted APIs ignore `chat_template_kwargs`. A request that turns thinking off on vLLM leaves it on at OpenRouter, Vercel AI Gateway, or Ollama Cloud, where it eats the 200-token answer budget. Send each API's own switch and check that reasoning tokens are 0.
 
 - Latency scales with input tokens (~0.8 ms per token for nimble on M3 Ultra). Putting the static maze first and the dynamic part last saved only ~35 ms, so prefix caching does not make large states cheap. Exact repeats of a request return in ~35–60 ms, so benchmarks must use fresh states or they will look far faster than a real game.
 - On the full ASCII board, nimble's confidence stayed between 0.00 and 0.09. On per-direction facts it chose the obvious move with probability ~0.99. The representation matters more than the model size between nimble and tev1:4b.
