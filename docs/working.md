@@ -208,8 +208,7 @@
 
 - Added hosted-API support to the teacher: `TEACHER_API_KEY` (bearer), `TEACHER_EXTRA_BODY` (JSON merged into each request, for each API's thinking switch and provider pinning), and `TEACHER_MAX_RETRIES` (retries on 429/5xx, honoring Retry-After). `gen-data` records input, output, and reasoning tokens and any reported cost per request, and takes `--label-every k`. Added `scripts/compare_teacher_labels.py`, which joins two runs on player, seed, and tick and projects cost.
 - DeepSeek V4.1 Flash on Ollama Cloud (`deepseek-v4.1-flash`, `reasoning_effort: none`), features + 5 s rollout facts, greedy seed 2000, 22 states, concurrency 1: 455.4 input and 31.3 output tokens per request, 0.60 s p50 and 0.78 s p90, 0 failures, 21 of 22 the same as the Qwen3.8-27B labels. At $0.15/$0.60 per million off-peak, $0.087 per 1,000 requests; 54,325 requests about $4.73 off-peak, $9.46 peak.
-- Qwen3.6-27B through Vercel AI Gateway (Alibaba), same prompt, 72 states over seeds 1000-1001, 2000-2001, 3000-3004: 466.7 input and 35.2 output tokens per request, 2.0 s p50, 0 failures, 69 of 72 the same as the Qwen3.8-27B labels, $0.000407 per request as reported by the gateway. Stopped early: Qwen3.6 is weaker than the published teacher, and the token counts were the point. The free tier allows 5 requests per minute on this model and refuses Qwen3.8-27B.
-- Published prices for Qwen3.8-27B on 2026-10-05 put the 54,325-request run between $7.39 (DeepInfra) and about $28 (Groq, Cerebras).
+- Published prices for Qwen3.8-27B on 2026-10-05, applied to DeepSeek's measured token counts as an estimate, put the 54,325-request run between about $6.90 (DeepInfra) and about $27 (Groq, Cerebras).
 
 ## Lessons Learned
 - Hosted APIs ignore `chat_template_kwargs`. A request that turns thinking off on vLLM leaves it on at OpenRouter, Vercel AI Gateway, or Ollama Cloud, where it eats the 200-token answer budget. Send each API's own switch and check that reasoning tokens are 0.

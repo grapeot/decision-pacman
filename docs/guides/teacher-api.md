@@ -2,7 +2,7 @@
 
 The published labels came from Qwen3.8-27B (NVFP4 weights) on one RTX 5090. Without that GPU, a hosted API can be the teacher. This guide covers what to set so `gen-data` talks to a hosted API, a cheap option that was measured (DeepSeek V4.1 Flash on Ollama Cloud), who serves the published teacher model itself, and what relabeling the published run's 54,325 requests costs.
 
-**Short version.** DeepSeek V4.1 Flash on Ollama Cloud labeled 22 real states with no failures, 455 input and 31 output tokens per request, and 0.6 s per request. At Ollama's list prices, 54,325 requests would cost about $4.73 off-peak or $9.46 at peak. It is not the model the published labels came from: it chose the published teacher's move on 21 of those 22 states, a sample far too small to call it equivalent. To reproduce the published labels as closely as possible, use a provider that serves Qwen3.8-27B (from about $7.39 for the same run).
+**Short version.** DeepSeek V4.1 Flash on Ollama Cloud labeled 22 real states with no failures, 455 input and 31 output tokens per request, and 0.6 s per request. At Ollama's list prices, 54,325 requests would cost about $4.73 off-peak or $9.46 at peak. It is not the model the published labels came from: it chose the published teacher's move on 21 of those 22 states, a sample far too small to call it equivalent. To reproduce the published labels as closely as possible, use a provider that serves Qwen3.8-27B (from about $6.90 for the same run, estimated with the same token counts).
 
 Labeling is the only place a hosted model enters. The student trains and plays locally as in [distill.md](distill.md).
 
@@ -42,22 +42,22 @@ Measured numbers are under [Measured](#measured). The caveat stands throughout: 
 
 ## Providers of Qwen3.8-27B
 
-Serverless endpoints for Qwen3.8-27B, the model behind the published labels, as listed on 2026-10-05. Prices are USD per million tokens. "Per 1k requests" applies the measured average of 466.7 input and 35.2 output tokens per request (see [Measured](#measured)): (466.7 × input price + 35.2 × output price) / 1,000.
+Serverless endpoints for Qwen3.8-27B, the model behind the published labels, as listed on 2026-10-05. Prices are USD per million tokens. "Per 1k requests" applies the token counts measured on DeepSeek V4.1 Flash with the same prompt, 455.4 input and 31.3 output tokens per request (see [Measured](#measured)): (455.4 × input price + 31.3 × output price) / 1,000. Qwen's tokenizer counts the same prompt somewhat differently, so treat these as estimates and measure a small batch on your provider before a full run.
 
 | Provider | Reached through | Input | Output | Per 1k requests | Weights | Notes |
 |---|---|---|---|---|---|---|
-| DeepInfra | direct, OpenRouter, Vercel AI Gateway | 0.15 | 1.875 | $0.136 | bf16 | 200 concurrent requests per model by default; structured output; no logprobs listed on OpenRouter |
-| Parasail | OpenRouter, Vercel AI Gateway | 0.24 | 2.20 | $0.189 | fp8 | logprobs and structured output |
-| Chutes | OpenRouter | 0.24 | 2.20 | $0.189 | fp8 | |
-| Alibaba Cloud Model Studio | direct | 0.424 (China, Beijing) / 0.50 (International) | 1.696 / 3.00 | $0.258 / $0.339 | official | the model's publisher; TPM limit tiered by monthly spend; logprobs |
-| Alibaba | OpenRouter / Vercel AI Gateway | 0.425 / 0.50 | 2.55 / 3.00 | $0.288 / $0.339 | official | |
-| Novita | OpenRouter, Vercel AI Gateway | 0.42 | 3.00 | $0.302 | not stated | logprobs |
-| Groq | direct | 0.80 | 4.00 | $0.514 | Groq TruePoint | preview model; developer plan 250K tokens and 1K requests per minute; 131K context |
-| Cerebras | OpenRouter, Vercel AI Gateway | 0.99 | 1.49 | $0.515 | fp16 | logprobs; 65K context on OpenRouter |
+| DeepInfra | direct, OpenRouter, Vercel AI Gateway | 0.15 | 1.875 | $0.127 | bf16 | 200 concurrent requests per model by default; structured output; no logprobs listed on OpenRouter |
+| Parasail | OpenRouter, Vercel AI Gateway | 0.24 | 2.20 | $0.178 | fp8 | logprobs and structured output |
+| Chutes | OpenRouter | 0.24 | 2.20 | $0.178 | fp8 | |
+| Alibaba Cloud Model Studio | direct | 0.424 (China, Beijing) / 0.50 (International) | 1.696 / 3.00 | $0.246 / $0.322 | official | the model's publisher; TPM limit tiered by monthly spend; logprobs |
+| Alibaba | OpenRouter / Vercel AI Gateway | 0.425 / 0.50 | 2.55 / 3.00 | $0.273 / $0.322 | official | |
+| Novita | OpenRouter, Vercel AI Gateway | 0.42 | 3.00 | $0.285 | not stated | logprobs |
+| Groq | direct | 0.80 | 4.00 | $0.490 | Groq TruePoint | preview model; developer plan 250K tokens and 1K requests per minute; 131K context |
+| Cerebras | OpenRouter, Vercel AI Gateway | 0.99 | 1.49 | $0.497 | fp16 | logprobs; 65K context on OpenRouter |
 
 OpenRouter also lists smaller hosts with lower input prices: Darkbloom (fp4, 0.05 / 2.20, $0.101 per 1k requests), Ionstream (fp8, 0.089 / 2.35, $0.124), DekaLLM (0.049 / 3.00), Reka (0.05 / 3.00), and Wafer (0.024 / 4.35, $0.164). Their quantization and capacity are less documented. Check uptime on OpenRouter before you start a long run with one of them.
 
-Not usable for this job on 2026-10-05: Together AI offers Qwen3.8-27B only for fine-tuning and dedicated inference, and Fireworks only as an on-demand deployment ("Serverless: Not supported"). OpenRouter's free variant `qwen/qwen3.8-27b:free` is capped at 50 requests a day (1,000 after buying $10 of credits). Vercel AI Gateway's free tier refuses Qwen3.8-27B ("Free tier users do not have access to this model") but serves Qwen3.6-27B.
+Not usable for this job on 2026-10-05: Together AI offers Qwen3.8-27B only for fine-tuning and dedicated inference, and Fireworks only as an on-demand deployment ("Serverless: Not supported"). OpenRouter's free variant `qwen/qwen3.8-27b:free` is capped at 50 requests a day (1,000 after buying $10 of credits). Vercel AI Gateway's free tier refuses Qwen3.8-27B ("Free tier users do not have access to this model").
 
 Sources, read 2026-10-05: OpenRouter's endpoint list (`https://openrouter.ai/api/v1/models/qwen/qwen3.8-27b/endpoints`), Vercel AI Gateway's (`https://ai-gateway.vercel.sh/v1/models/alibaba/qwen3.8-27b/endpoints`), the model pages of [Alibaba Cloud Model Studio](https://www.alibabacloud.com/help/en/model-studio/qwen3-8-27b), [Groq](https://console.groq.com/docs/model/qwen/qwen3.8-27b), and [Fireworks](https://fireworks.ai/models/fireworks/qwen3p8-27b), [DeepInfra's rate limits](https://docs.deepinfra.com/account/rate-limits), and [OpenRouter's limits](https://openrouter.ai/docs/api_reference/limits). Prices change; recheck them before a run.
 
@@ -73,7 +73,7 @@ Set the teacher in `.env` (gitignored). Take the key from your password manager 
 | Groq | `https://api.groq.com/openai/v1` | `qwen/qwen3.8-27b` | `{"reasoning_effort":"none"}` |
 | Ollama Cloud (DeepSeek V4.1 Flash, not Qwen) | `https://ollama.com/v1` | `deepseek-v4.1-flash` | `{"reasoning_effort":"none"}` |
 
-On Vercel AI Gateway, `{"reasoning":{"enabled":false}}`, `{"reasoning":{"effort":"none"}}`, and `{"reasoning_effort":"none"}` all gave 0 reasoning tokens on Qwen3.6-27B, and `chat_template_kwargs` alone did not. The Ollama Cloud switch was run here too. The OpenRouter, Alibaba, and Groq switches are from their documentation and were not run here.
+The Ollama Cloud switch was run here and gave 0 reasoning tokens. The other switches are from each provider's documentation. Whichever route you use, check that the recorded reasoning tokens are 0 on a few requests before a long run; `chat_template_kwargs` alone is not enough on hosted APIs.
 
 An aggregator routes each request to any provider that serves the model unless you pin one. Pin the provider you priced, so the labels come from one set of weights, by adding to the same JSON:
 
@@ -120,7 +120,7 @@ Players are deterministic for a seed, so the script joins the two runs on player
 
 ## Measured
 
-Two small measurements on 2026-10-05 (Pacific time), both with the `teacher-peek5s` prompt of the published run (features encoding plus the 5-second rollout facts), temperature 0, thinking off, on training seeds. Neither model is the published teacher, and both samples are small: they establish tokens, cost, latency, and that the setup works, not label quality.
+One small measurement on 2026-10-05 (Pacific time), with the `teacher-peek5s` prompt of the published run (features encoding plus the 5-second rollout facts), temperature 0, thinking off, on training seeds. The model is not the published teacher, and the sample is small: it establishes tokens, cost, latency, and that the setup works, not label quality.
 
 ### DeepSeek V4.1 Flash, Ollama Cloud
 
@@ -137,53 +137,28 @@ One process (concurrency 1), `--player greedy --seed 2000 --games 1 --label-ever
 | Cost of the run | 10,019 input and 688 output tokens: (10,019 × $0.15 + 688 × $0.60) / 10^6 = $0.0019 off-peak |
 | Same choice as the published Qwen3.8-27B labels | 21 of 22 (95% interval 78-99%); tiny sample, a rough signal only |
 
-### Qwen3.6-27B, Vercel AI Gateway (secondary)
-
-No key with paid access to Qwen3.8-27B was available, so this measurement used `alibaba/qwen3.6-27b` through Vercel AI Gateway's free tier (served by Alibaba, $0.60 input and $3.60 output per million tokens), on a handful of states. Qwen3.6-27B is the previous release of the same 27B model line and is weaker than the Qwen3.8-27B teacher behind the published labels, so its labels are not equivalent, and its agreement with the published teacher was not measured at scale. The run was stopped early by decision: the token counts per state, which set the cost, were the point.
-
-Setup: `teacher-peek5s` prompts (features encoding plus the 5-second rollout facts), thinking off with `{"reasoning":{"enabled":false}}`, temperature 0, `--label-every 20` on training seeds 1000-1001 (`oracle-5s`), 2000-2001 (`greedy`), and 3000-3004 (`random`), three processes, 2026-10-05.
-
-| | Value |
-|---|---|
-| Requests answered | 66 (72 states labeled; 6 repeated prompts came from the cache) |
-| Input tokens per request | 466.7 mean, 519 p90 |
-| Output tokens per request | 35.2 mean, 41 p90 |
-| Reasoning tokens | 0 |
-| Reported cost | $0.026848 in total, $0.000407 per request |
-| Latency per request | 2.0 s p50, 2.8 s p90 |
-| Unparseable or illegal answers | 0 |
-| Requests that hit the rate limit first | 30 of 66 (free tier: 5 requests per minute; all succeeded on retry) |
-| Same choice as the published Qwen3.8-27B labels | 69 of 72 (95.8%; 95% interval 88-99%) |
-
-The cost the gateway reported equals the list price applied to the token counts: (466.7 × $0.60 + 35.2 × $3.60) / 10^6 = $0.000407 per request. Input and output weigh about equally in the bill, so a provider's output price matters as much as its input price here.
-
-Qwen3.6-27B and Qwen3.8-27B share the same `vocab.json` and `merges.txt` on Hugging Face, so a state costs the same number of tokens on either, give or take a few chat-template tokens.
-
-The 72-state agreement says the prompt, the rollout facts, and the answer format carry over to a hosted model unchanged. It does not show that Qwen3.6-27B labels as well as Qwen3.8-27B: the sample is small, and two of the three differences were on `oracle-5s` states (7 of 9 agreed), the strong-play positions where a weaker teacher would show first.
-
 ### Projected for the published run
 
-The published run sent 54,325 teacher requests. Cost = 54,325 × (input tokens × input price + output tokens × output price) / 10^6, with each model's measured tokens per request: 455.4 and 31.3 for DeepSeek V4.1 Flash, 466.7 and 35.2 for Qwen (Qwen3.6 and Qwen3.8 share a tokenizer). Cached-input discounts are ignored, so these are upper bounds where a provider caches the shared prompt prefix.
+The published run sent 54,325 teacher requests. Cost = 54,325 × (input tokens × input price + output tokens × output price) / 10^6, with the 455.4 input and 31.3 output tokens per request measured on DeepSeek V4.1 Flash; the Qwen3.8-27B rows reuse those counts as an estimate. Cached-input discounts are ignored, so these are upper bounds where a provider caches the shared prompt prefix.
 
 | Provider (Qwen3.8-27B unless noted) | Per 1k requests | 54,325 requests |
 |---|---|---|
 | DeepSeek V4.1 Flash, Ollama Cloud, off-peak | 0.0683 + 0.0188 = $0.087 | $4.73 |
 | DeepSeek V4.1 Flash, Ollama Cloud, peak | 0.1366 + 0.0376 = $0.174 | $9.46 |
-| DeepInfra | 0.0700 + 0.0660 = $0.136 | $7.39 |
-| Parasail | 0.1120 + 0.0774 = $0.189 | $10.29 |
-| Alibaba Model Studio, China (Beijing) | 0.1979 + 0.0597 = $0.258 | $13.99 |
-| Alibaba Model Studio, International (also via Vercel AI Gateway) | 0.2334 + 0.1056 = $0.339 | $18.41 |
-| Groq | 0.3734 + 0.1408 = $0.514 | $27.93 |
-| Cerebras | 0.4620 + 0.0524 = $0.515 | $27.95 |
-| Qwen3.6-27B, Alibaba via Vercel AI Gateway (the one measured) | 0.2800 + 0.1267 = $0.407 | $22.10 |
+| DeepInfra | 0.0683 + 0.0587 = $0.127 | $6.90 |
+| Parasail | 0.1093 + 0.0689 = $0.178 | $9.68 |
+| Alibaba Model Studio, China (Beijing) | 0.1931 + 0.0531 = $0.246 | $13.37 |
+| Alibaba Model Studio, International (also via Vercel AI Gateway) | 0.2277 + 0.0939 = $0.322 | $17.47 |
+| Groq | 0.3643 + 0.1252 = $0.490 | $26.59 |
+| Cerebras | 0.4508 + 0.0466 = $0.497 | $27.03 |
 
-Wall time depends on latency and on how many processes run, not on price. With P processes and latency L per request, the run takes about 54,325 × L / P, but never less than the longest single game: up to 1,276 requests in one game of the published run, asked one after another. Vercel AI Gateway's own latency figures for Qwen3.8-27B over the preceding hour were about 0.6-0.7 s p50 for DeepInfra, Parasail, Cerebras, and Novita, and 2.1 s for Alibaba, close to the 2.0 s measured here on Qwen3.6-27B. Except for the two latencies measured here, these are estimates:
+Wall time depends on latency and on how many processes run, not on price. With P processes and latency L per request, the run takes about 54,325 × L / P, but never less than the longest single game: up to 1,276 requests in one game of the published run, asked one after another. Vercel AI Gateway's own latency figures for Qwen3.8-27B over the preceding hour were about 0.6-0.7 s p50 for DeepInfra, Parasail, Cerebras, and Novita, and 2.1 s for Alibaba. Except for the DeepSeek latency measured here, these are estimates:
 
 | | L | P = 16 | P = 32 | One game, floor |
 |---|---|---|---|---|
 | DeepSeek V4.1 Flash, Ollama Cloud (measured) | 0.6 s | 34 min | 17 min | 13 min |
 | DeepInfra-class latency | 0.7 s | 40 min | 20 min | 15 min |
-| Alibaba latency (measured on 3.6) | 2.0 s | 113 min | 57 min | 43 min |
+| Alibaba-class latency | 2.1 s | 119 min | 59 min | 45 min |
 
 On Ollama Cloud, Max's 10 concurrent requests give 54,325 × 0.6 s / 10 = 54 minutes; at 2 concurrent requests the run takes about 4.5 hours. Groq's developer plan caps tokens at 250K per minute: at about 502 tokens per request that is about 500 requests per minute, so at least 109 minutes. The published run on the RTX 5090 took about 65 minutes at concurrency 8.
 
@@ -192,7 +167,6 @@ On Ollama Cloud, Max's 10 concurrent requests give 54,325 × 0.6 s / 10 = 54 min
 - The hosted teacher is not the published teacher. Same model name is not same numbers: the published labels came from NVFP4 weights on a 5090, and providers serve bf16, fp8, fp4, or unstated precision. Relabel a sample and compare (above) before trusting a provider's labels for a full run, and pin the provider.
 - DeepSeek V4.1 Flash is a different model from the published teacher. 21 of 22 matching labels says the prompt and answer format work with it; it does not say its labels train an equally good student. Relabel a few thousand states and train before relying on it.
 - Ollama Cloud prices depend on the hour (peak 12:00-18:00 UTC on weekdays costs twice off-peak), and its pages do not state concurrency limits for Free and Pro. Run a short pilot at the concurrency you plan to use.
-- Agreement in this guide was also measured on 72 states with Qwen3.6-27B. It is a check that the setup works, not evidence that Qwen3.6-27B is a substitute for Qwen3.8-27B.
-- Free tiers are not enough for a full run: Vercel AI Gateway's free tier allowed 5 requests per minute on Qwen3.6-27B (54,325 requests would take about 7.5 days), and OpenRouter's free variant allows 50 to 1,000 requests a day.
+- Free tiers are not enough for a full run: OpenRouter's free variant allows 50 to 1,000 requests a day, and Vercel AI Gateway's free tier refuses Qwen3.8-27B.
 - Hosted answers at temperature 0 are not guaranteed to be deterministic across providers or over time, so a rerun can differ in a few labels.
 - Logprobs, which would allow soft labels instead of hard ones, are listed on OpenRouter for Alibaba, Parasail, Novita, and Cerebras, not for DeepInfra. `gen-data` does not request them; the published run had none.
