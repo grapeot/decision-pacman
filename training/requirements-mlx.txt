@@ -1,0 +1,4 @@
+# Apple silicon training environment for train_mlx.py, merge_mlx.py, and score_mlx.py.
+# These are the versions the measured run in docs/guides/distill-mlx.md used.
+mlx==0.32.3
+mlx-lm==0.32.0

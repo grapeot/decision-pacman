@@ -2,7 +2,7 @@
 
 The distilled `pacman-0.8b-qwen` is published on Hugging Face at [grapeot/decision-pacman-0.8b-GGUF](https://huggingface.co/grapeot/decision-pacman-0.8b-GGUF). To play it, you need no GPU: download and import it as in [run-models.md](run-models.md). This guide rebuilds it from scratch: label states with an LLM teacher, train, export, import into Ollama, and score. The training data is not in the repository.
 
-Training requires a CUDA GPU (the published run used one RTX 5090). Labeling requires an OpenAI-compatible chat endpoint serving a capable model (the published run used Qwen3.8-27B NVFP4); a hosted API serving the same model works too, see [teacher-api.md](teacher-api.md).
+Training requires a CUDA GPU (the published run used one RTX 5090), or an Apple-silicon Mac with MLX: [distill-mlx.md](distill-mlx.md) replaces steps 3 and 4 below. Labeling requires an OpenAI-compatible chat endpoint serving a capable model (the published run used Qwen3.8-27B NVFP4); a hosted API serving the same model works too, see [teacher-api.md](teacher-api.md).
 
 ## Overview
 
@@ -60,7 +60,7 @@ CUDA_VISIBLE_DEVICES=0 python training/train.py --data data/sft_q1 --out runs/ft
 
 The script defaults to `--base Qwen/Qwen3.5-0.8B`, `--batch 32`, `--lr 1e-4`, `--rank 16`, `--alpha 32`, and `--epochs 1.0`. The published model was trained with `--epochs 2`.
 
-On one RTX 5090, training takes about 32 minutes for 1,974 steps. The script writes the LoRA adapter to `<out>/adapter`.
+On one RTX 5090, training takes about 32 minutes for 1,974 steps. The script writes the LoRA adapter to `<out>/adapter`. To train on a Mac instead, see [distill-mlx.md](distill-mlx.md).
 
 ## 4. Export to GGUF
 
