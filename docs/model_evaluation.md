@@ -13,6 +13,7 @@ This document records how we chose the in-game model, the fine-tuning target, an
 - **The specialization is not free.** On 194 public JevBench decisions that are not Pac-Man (support routing, intent, policy checks, severity), `pacman-0.8b` scored 0.49 against 0.66 for `tev1:0.8b` and 0.81 for `tev1:4b`, with chance at 0.32. It loses most on the easy and standard tiers, where `tev1:0.8b` is competent, and its probabilities there stay close to uniform. On the hard tier both 0.8B models are near chance.
 - **Hosted Jev sits between `tev1:4b` and the greedy rule.** Through TypeSafe's API, Jev 1.13.0 averaged 178 pellets and 52 s per game at 115 ms per decision, and agreed with the oracle on 39.9% of held-out states. The fine-tuned 0.8B model beats it on both.
 - **An ordinary small chat model plays as well as Jev.** Given the same facts, a JSON schema restricted to the legal options, and thinking off, stock `phi4-mini` averaged 232 pellets at 187 ms per decision, `gemma4:e4b` 230, and `qwen3.5:4b` 197, against Jev's 178, all in real time with no failed answers. All three also agreed with the oracle more often than Jev (44-45% against 39.9%).
+- **OpenAI's Decisions API also beats Jev on the same question.** GPT-6 Luna, asked through `/v1/decisions` with the facts and option list Jev gets, averaged 239 and 235 pellets in two runs at about 160 ms per decision, 54 pellets per game above Jev run at the same time (standard error 15, 20 paired games), with no failed answers, at about $0.012 per game (section 21).
 - **Lookahead labels data; it never enters a player's input.** Showing a model one simulated 5-second future per option lets it see a near-exact future, because the engine is deterministic apart from frightened ghosts. Results with lookahead in the input (sections 13, 16, and 18's student B) are recorded but are not comparable with players that see only the current state, and are not used as player comparisons. Lookahead is used to make labels: Qwen3.8-27B choosing with it agreed with the search oracle's best option on 88-92% of states, and played 1,396 pellets in lockstep.
 - **The 27B teacher distills into a fast 0.8B that sees only the current state.** Trained on Qwen3.8-27B's lookahead labels with the features input, `pacman-0.8b-qwen` averaged 425 pellets over three realtime runs at 55 ms per decision, more than twice Jev's 178, and 0.53 on the JevBench items. The oracle-trained `pacman-0.8b`, run the same day, scored 300 and 400 (456 earlier): a general LLM can replace the hand-built search as the teacher.
 - **State representation matters more than model size.** Compact per-direction facts beat a full ASCII board in both latency and decision quality. Quantization and prefix caching did not reduce latency.
@@ -489,6 +490,44 @@ What this shows:
 - The training path needed three fixes beyond porting the loss: a chunked Gated DeltaNet recurrence, a cache limit, and Adam's bias correction. The last one changes results silently: the run still trains, only worse.
 - The one-epoch student is a little weaker than the published two-epoch one: 2.5 points lower agreement with the teacher, 55 fewer pellets per realtime game (about 1.6 standard errors), and 65 fewer in lockstep. It plays at the level of `pacman-0.8b` (386) and student C (406) of section 18. The likely cause is the shorter schedule, since the 5090 run gained 3.6 points of validation agreement in its second epoch; the Mac two-epoch run showed no such gain through step 1,400, before its learning rate had fallen far, so this is not settled.
 - The published model reproduced its section 18 numbers on Ollama 0.35.1 once the decision capability was declared: 61.9% agreement and 417 pellets in lockstep exactly, and 427 in real time against 425.
+
+### 21. OpenAI's Decisions API with GPT-6 Luna
+
+OpenAI announced the Decisions API at DevDay 2026 (2026-09-29) and opened it to all developers as a public beta on 2026-10-06. It is a dedicated endpoint, `POST /v1/decisions`, that runs GPT-6 Luna (`gpt-6-luna`, the only model it serves) on questions whose answers are fixed in advance: `predicate` (the probability that a condition holds), `choice` (one of the supplied values, with a probability for every value and a confidence), and `score` (a probability-weighted level). It generates no text. Input costs $0.10 per million tokens, and there is no output charge; replies report 0 output tokens. That is the shape of Jev's `/v1/systemone`, so it is a decision model in the sense this project uses, and the question is how it plays.
+
+**Setup.** The policy `openai:gpt-6-luna` (`src/agent/decisions.ts`) sends the facts Jev gets: the `features` state as `input`, and one `choice` question named `move` whose instructions are the encoder's and whose choices are the legal options, with the encoder's descriptions ("turn around now" for `back`). The per-option probabilities are logged as for Jev. A refusal or a choice outside the options would count as a failed decision; none occurred. Both players ran over the internet from the M3 Ultra (load average about 6-8), on `features`, the realtime clock, 1x, seeds 100-109, and the 5-minute cap. There were two pairs of 10-game runs, and within each pair GPT-6 Luna and Jev ran at the same time, so they shared the network and the machine.
+
+| Player | Run | Mean pellets | Mean survival | Decision p50 (mean of games) | p50 / p90 / p99, all decisions | Stale | Failed |
+|---|---|---|---|---|---|---|---|
+| GPT-6 Luna | 1 | 238.9 | 77 s | 177 ms | 164 / 255 / 772 ms | 6.6% | 0 of 3,328 |
+| GPT-6 Luna | 2 | 234.6 | 68 s | 158 ms | 158 / 211 / 555 ms | 4.7% | 0 of 3,312 |
+| Jev 1.13.0 | 1 | 187.8 | 57 s | 115 ms | 113 / 167 / 805 ms | 3.9% | 1 (HTTP 529, overloaded) |
+| Jev 1.13.0 | 2 | 177.5 | 61 s | 113 ms | 113 / 154 / 241 ms | 2.7% | 0 of 3,960 |
+
+Per game, GPT-6 Luna ate 243, 227, 196, 227, 484, 179, 240, 224, 229, and 140 pellets in run 1, and 219, 198, 222, 224, 228, 278, 330, 242, 167, and 238 in run 2. In run 1 on seed 104 it cleared the first level (244 pellets) and ate 240 on the second. One game (run 1, seed 101) ran at a p50 of 301 ms during a slow patch of the API; the other 19 games ran at 154-167 ms.
+
+**Paired comparison** (GPT-6 Luna minus Jev, pellets per game, by seed):
+
+| Pairing | Mean difference | Standard error | Difference / SE |
+|---|---|---|---|
+| Run 1, same session | +51.1 | 27.1 | 1.9 |
+| Run 2, same session | +57.1 | 16.4 | 3.5 |
+| Both runs, 20 paired games | +54.1 | 15.4 | 3.5 |
+| Run 1 against section 12's Jev run (2026-09-30) | +61.1 | 36.5 | 1.7 |
+
+GPT-6 Luna ate more than Jev in 18 of the 20 same-session pairs. Without run 1's seed 104, the mean difference is +42.1 with a standard error of 10.2. Jev reproduced its section 12 result: against that run, its first run of this session differs by +10.0 pellets per game with a standard error of 14.4.
+
+**Tokens and cost.** The same state costs 359 input tokens on the Decisions API against about 609 on Jev, which adds about 300 tokens of its own (section 12). A 10-game run used 1.19 million input tokens, $0.12 at the published price, about $0.012 per game. The two runs and a 3-game smoke test cost about $0.28 together. Jev still answered as `jev-1.13.0`.
+
+**Answers.** GPT-6 Luna's choices covered every direction (run 1: up 1,087, left 797, back 630, right 426, down 388). Its reported confidence averaged 0.33 against Jev's 0.44, and its top option's probability averaged 0.54 against 0.61. Three identical requests on one probe state returned 0.81, 0.79, and 0.82 for the top option, so the answers are not exactly deterministic.
+
+**In the browser** (dev server, seed 100, 1x, through the `/openai` proxy), decisions took a p50 of about 250 ms and a p90 of about 400 ms, against about 210 ms for Jev measured the same way on 2026-10-05. The proxy hop costs the browser about 90 ms over the headless runner.
+
+What this shows:
+
+- GPT-6 Luna through the Decisions API plays at the level of the small chat models of section 14 (`phi4-mini` 232, `gemma4:e4b` 230) and above Jev, by about 54 pellets per game in the same sessions, at about 50 ms more per decision. It remains far below the distilled `pacman-0.8b-qwen` (425).
+- The request maps one-to-one onto Jev's: state as evidence, one choice question, a probability per option. The same facts and the same question went to both, so the difference is the model behind the endpoint.
+- Limits: two 10-game runs; a public beta whose model, latency, and price may change; the comparison with section 14's chat models is across days; the answers vary slightly between identical requests. Agreement with the teacher and JevBench accuracy were not measured.
 
 ## Conclusions
 

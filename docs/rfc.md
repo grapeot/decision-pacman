@@ -20,10 +20,11 @@ The game is a browser application. A deterministic TypeScript engine steps at a 
                                    (Ollama :11434, or hosted Jev via dev-server proxy)
 ```
 
-The system supports three kinds of players alongside scripted baselines (`random`, `greedy`):
+The system supports four kinds of players alongside scripted baselines (`random`, `greedy`):
 1. Local decision models served over Ollama's `/v1/systemone` API (`tev1:0.8b`, `tev1:4b`, and fine-tuned models such as `pacman-0.8b-qwen`). The model returns probabilities for every legal option, read from option-letter logits.
 2. Plain chat models accessed through Ollama's `/api/chat` using policy names formatted as `llm:<ollama-model>` (e.g. `llm:phi4-mini`, `llm:gemma4:e4b`, `llm:qwen3.5:4b`). They receive the same state facts, a JSON schema restricting `move` to the legal options, thinking off, and temperature 0. Probabilities come from token logprobs.
 3. TypeSafe's hosted decision model Jev (`jev-latest`) at `https://api.typesafe.ai/v1/systemone`, with a bearer key from `TYPESAFE_API_KEY`. The headless `jev` policy calls it directly. In the browser, the dev-server proxy adds the key, so it never reaches the page. Hosted requests leave out Ollama's `keep_alive` field, which the API rejects.
+4. OpenAI's Decisions API (`POST https://api.openai.com/v1/decisions`, model `gpt-6-luna`), with a bearer key from `OPENAI_API_KEY`, under the policy name `openai:<model>`. Its request has a different shape from `/v1/systemone` but carries the same facts: the encoded state as `input`, and one `choice` question with the encoder's instructions and the legal options. It returns a probability for every option. In the browser, the dev server proxies `/openai` and adds the key.
 
 The engine has no DOM dependency. The same code runs headless in Node for unit tests, benchmarks, teacher data generation, and seeded game evaluations. In the headless runner, a `realtime` clock converts decision latency into elapsed game ticks, while a `lockstep` clock pauses the game for every answer.
 
@@ -54,6 +55,7 @@ Full method and numbers are in `docs/model_evaluation.md`. The constraints that 
 - `src/encoders/`: transforms engine state and legal moves into model inputs via `(state, decisionPoint) => { state, instructions, options }`. Encoders compute facts with BFS over the maze and never call a model. Includes `features` (default compact JSON facts), board renderings (`ascii-window`, `ascii-full`), and `src/encoders/peek.ts` (`features-peek5s`, a lookahead encoder used as a labeling and record tool).
 - `src/agent/`: the agent loop, decision logging, and policy implementations.
   - `src/agent/client.ts`, `src/agent/factory.ts`: client for `/v1/systemone` endpoints. Supports local Ollama and hosted Jev (`jev-latest`, bearer key in `TYPESAFE_API_KEY`, omits `keep_alive`).
+  - `src/agent/decisions.ts`: `openai:<model>` policy for OpenAI's Decisions API (`/v1/decisions`, GPT-6 Luna). A refusal or a choice outside the legal options fails the decision.
   - `src/agent/llm.ts`: `llm:<model>` policy querying plain chat models via Ollama's `/api/chat` with a JSON schema restricting `move` to legal options, thinking off, and temperature 0.
   - `src/agent/prompt.ts`: the Ollama System One prompt in TypeScript, byte-identical to the Hugging Face chat template on 20 test fixtures, for models run outside Ollama (the iOS app).
   - `src/agent/native.ts`: the bridge policy for the iOS app: the page renders the prompt and native code runs the model.

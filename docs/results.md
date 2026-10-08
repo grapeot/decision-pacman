@@ -14,7 +14,7 @@ Lockstep results are not comparable with realtime results. The same holds for br
 
 The lookahead rule ([AGENTS.md](../AGENTS.md); conclusion 10 of [model_evaluation.md](model_evaluation.md)): lookahead (engine rollouts) may label training data but never enters a player's input in a comparison. Players are compared on the same current-state input (`features`). An exact rollout of a deterministic engine is close to seeing the future (only frightened ghosts turn at random). Results with lookahead in the input are records, not ladder rows.
 
-Hardware: local models ran on an Apple M3 Ultra with Ollama 0.35.0. Jev ran over the internet against TypeSafe's hosted API. The Qwen3.8-27B teacher and all fine-tuning ran on one NVIDIA RTX 5090.
+Hardware: local models ran on an Apple M3 Ultra with Ollama 0.35.0. Jev ran over the internet against TypeSafe's hosted API, and GPT-6 Luna against OpenAI's Decisions API. The Qwen3.8-27B teacher and all fine-tuning ran on one NVIDIA RTX 5090.
 
 ## The ladder
 
@@ -30,9 +30,10 @@ All rows: `features` input, no lookahead, 10 games on seeds 100-109, 1x speed, 5
 | greedy (scripted) | 201 | 63 s | 0 ms | section 11 |
 | `llm:gemma4:e4b` | 230 | 55 s | 253 ms | section 14 |
 | `llm:phi4-mini` | 232 | 55 s | 187 ms | section 14 |
+| `openai:gpt-6-luna` (OpenAI Decisions API) | 237 | 73 s | 168 ms | section 21 |
 | `pacman-0.8b-qwen` | 425 | 86 s | 55 ms | section 18 |
 
-The `pacman-0.8b-qwen` row is the mean of three 10-game runs: 441, 467, and 366 pellets.
+The `pacman-0.8b-qwen` row is the mean of three 10-game runs: 441, 467, and 366 pellets. The `openai:gpt-6-luna` row is the mean of two 10-game runs, 239 and 235 pellets, each run at the same time as a Jev run on the same seeds; Jev scored 188 and 178 in those runs, so its row stands. Paired by seed and run, GPT-6 Luna ate 54 more pellets per game than Jev, with a standard error of 15 (section 21).
 
 For commands to run ladder evaluations, see [guides/evaluate.md](guides/evaluate.md).
 
@@ -119,6 +120,8 @@ A decision is prefill-bound. A decision model reads its answer directly from opt
 Realtime scores for the same model varied by up to about 150 pellets across 10-game runs (section 18). `pacman-0.8b-qwen` recorded runs of 441, 467, and 366 pellets. The 2026-10-01 runs shared the host Mac with heavy unrelated background workload (load average 15-36); the models compared that day were alternated to face matching load conditions. Compare realtime scores within the same session rather than across days.
 
 Single games show wide variance. Jev's 10 evaluation games ranged from 103 to 231 pellets.
+
+Hosted players depend on the network and the provider's load. OpenAI's Decisions API is a public beta: one GPT-6 Luna game ran at a p50 of 301 ms against about 160 ms for the rest, and Jev answered one request with HTTP 529 (overloaded). Both were run at the same time so that they shared these conditions.
 
 The realtime clock charges latency as game time, so it handicaps slower players, such as the chat models at 187-267 ms per decision.
 
