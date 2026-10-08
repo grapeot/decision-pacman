@@ -2,6 +2,7 @@ import { AgentLoop, shouldHold, type DecisionRecord } from "./agent/loop.ts";
 import { DecisionApiError } from "./agent/client.ts";
 import { systemOnePolicy } from "./agent/policies.ts";
 import { llmPolicy } from "./agent/llm.ts";
+import { decisionsPolicy, DECISIONS_DEFAULT_BASE_URL } from "./agent/decisions.ts";
 import { nativeBridge, nativeChatPolicy, nativeJevPolicy, nativePolicy } from "./agent/native.ts";
 import { DEFAULT_PLAYER, isPlayerId, playerLabel, type PlayerId } from "./agent/players.ts";
 import { GameAudio } from "./audio/player.ts";
@@ -110,6 +111,10 @@ function makePolicy() {
   if (bridge) return appPolicy(isPlayerId(config.model) ? config.model : DEFAULT_PLAYER);
   // "llm:<model>" is a plain Ollama chat model answering in constrained JSON, not a decision model.
   if (config.model.startsWith("llm:")) return llmPolicy({ baseUrl: config.endpoint, model: config.model.slice("llm:".length) });
+  // "openai:<model>" is OpenAI's Decisions API. The dev server proxies /openai and adds OPENAI_API_KEY, so the key never reaches the page.
+  if (config.model.startsWith("openai:")) {
+    return decisionsPolicy({ baseUrl: import.meta.env.DEV ? "/openai" : DECISIONS_DEFAULT_BASE_URL, model: config.model.slice("openai:".length) });
+  }
   return systemOnePolicy({ baseUrl: config.endpoint, model: config.model, hosted: import.meta.env.VITE_DECISION_HOSTED === "1" });
 }
 
