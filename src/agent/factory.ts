@@ -1,6 +1,7 @@
 import { greedyPolicy, randomPolicy, systemOnePolicy, type Policy } from "./policies.ts";
 import { oraclePolicy } from "./oracle.ts";
 import { llmPolicy } from "./llm.ts";
+import { decisionsPolicy, DECISIONS_DEFAULT_BASE_URL } from "./decisions.ts";
 import { teacherPolicy, type TeacherDecision } from "./teacher.ts";
 
 export interface PolicyEnv {
@@ -18,7 +19,8 @@ export interface PolicyEnv {
 }
 
 /**
- * Policies by name: "random", "greedy", "jev" (TypeSafe's hosted Jev), "oracle" (engine rollouts; "oracle-8s-x2"
+ * Policies by name: "random", "greedy", "jev" (TypeSafe's hosted Jev), "openai:<model>" (OpenAI's Decisions API,
+ * e.g. "openai:gpt-6-luna"), "oracle" (engine rollouts; "oracle-8s-x2"
  * sets an 8 s horizon and 2 samples), "teacher", "teacher-think", and "-peek5s" variants that also show a 5 s simulated future per option (the
  * chat model from TEACHER_BASE_URL / TEACHER_MODEL), "llm:<model>" (a plain Ollama chat model answering in JSON
  * constrained to the legal options), or any decision model name served on the /v1/systemone endpoint.
@@ -33,6 +35,15 @@ export function makePolicy(name: string, seed: number, env: PolicyEnv): Policy {
       baseUrl: process.env.JEV_BASE_URL ?? "https://api.typesafe.ai",
       model: process.env.JEV_MODEL ?? "jev-latest",
       apiKey: process.env.TYPESAFE_API_KEY,
+    });
+  }
+  if (name.startsWith("openai:")) {
+    // OpenAI's Decisions API (/v1/decisions); gpt-6-luna is the model it serves.
+    if (!process.env.OPENAI_API_KEY) throw new Error("Set OPENAI_API_KEY to call the OpenAI Decisions API.");
+    return decisionsPolicy({
+      baseUrl: DECISIONS_DEFAULT_BASE_URL,
+      model: name.slice("openai:".length),
+      apiKey: process.env.OPENAI_API_KEY,
     });
   }
   const oracle = /^oracle(?:-(\d+(?:\.\d+)?)s)?(?:-x(\d+))?$/.exec(name);

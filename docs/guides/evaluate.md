@@ -49,7 +49,7 @@ Exact repeated requests hit a cache and return 5-10x faster. Latency claims must
 
 ## Reproduce each ladder row
 
-Requirements: Node 20+ with npm, and Ollama 0.35+ for decision models. The published numbers come from an Apple M3 Ultra with Ollama 0.35.0 for local models; Jev ran over the internet.
+Requirements: Node 20+ with npm, and Ollama 0.35+ for decision models. The published numbers come from an Apple M3 Ultra with Ollama 0.35.0 for local models; Jev and OpenAI's Decisions API ran over the internet.
 
 Every ladder run uses 10 games on seeds 100-109, 1x speed, a 5-minute cap (`--max-seconds 300`), and the realtime clock.
 
@@ -63,6 +63,7 @@ Every ladder run uses 10 games on seeds 100-109, 1x speed, a 5-minute cap (`--ma
 | greedy (scripted) | `npm run headless -- --policy greedy --games 10 --seed 100 --max-seconds 300` | None |
 | `llm:gemma4:e4b` | `npm run headless -- --policy llm:gemma4:e4b --games 10 --seed 100 --max-seconds 300` | `ollama pull gemma4:e4b` |
 | `llm:phi4-mini` | `npm run headless -- --policy llm:phi4-mini --games 10 --seed 100 --max-seconds 300` | `ollama pull phi4-mini` |
+| `openai:gpt-6-luna` (OpenAI Decisions API) | `npm run headless -- --policy openai:gpt-6-luna --games 10 --seed 100 --max-seconds 300` | `OPENAI_API_KEY` set in the shell or a local `.env` ([run-models.md](run-models.md)); about $0.12 per 10 games |
 | `pacman-0.8b-qwen` | `npm run headless -- --policy pacman-0.8b-qwen --games 10 --seed 100 --max-seconds 300` | Download from Hugging Face and import into Ollama ([run-models.md](run-models.md)), or train it ([distill.md](distill.md)) |
 
 ### Lockstep rows
@@ -142,7 +143,7 @@ The script sends the 20 rendered game prompts in `ios/mac_check/bench_prompts.js
 
 ### Hardware notes
 
-Local decision models ran on an Apple M3 Ultra with Ollama 0.35.0. Jev ran over the internet. The teacher model and training ran on one RTX 5090.
+Local decision models ran on an Apple M3 Ultra with Ollama 0.35.0. Jev and OpenAI's Decisions API ran over the internet. The teacher model and training ran on one RTX 5090.
 
 ## Recording results
 

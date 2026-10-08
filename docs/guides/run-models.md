@@ -1,6 +1,6 @@
 # Run models
 
-A model can play the game in three ways: as a local decision model over Ollama's `/v1/systemone` API, as a plain chat model through Ollama's `/api/chat` (policy `llm:<model>`), or as TypeSafe's hosted decision model Jev. The scripted baselines `random` and `greedy` need no model.
+A model can play the game in four ways: as a local decision model over Ollama's `/v1/systemone` API, as a plain chat model through Ollama's `/api/chat` (policy `llm:<model>`), as TypeSafe's hosted decision model Jev, or through OpenAI's Decisions API with GPT-6 Luna (policy `openai:gpt-6-luna`). The scripted baselines `random` and `greedy` need no model.
 
 Requirements: Node 20+ with npm, and Ollama. Decision models need Ollama 0.35+, which added `/v1/systemone`.
 
@@ -94,6 +94,27 @@ VITE_DECISION_BASE_URL=https://api.typesafe.ai npm run dev
 ```
 Open `http://localhost:5173/?model=jev-latest`. The development server reads the key from the process environment (not `.env`) and adds the key to proxied requests. The key never reaches the browser page.
 
+## OpenAI Decisions API (GPT-6 Luna)
+
+OpenAI's Decisions API (`POST https://api.openai.com/v1/decisions`, public beta since 2026-10-06) runs GPT-6 Luna on questions whose answers are fixed in advance. `gpt-6-luna` is the only model it serves. Like Jev, it generates no text: a `choice` question returns one of the supplied values, a probability for each value, and a confidence. Input costs $0.10 per million tokens, with no output charge.
+
+The policy `openai:gpt-6-luna` (`src/agent/decisions.ts`) sends the same facts as the other players: the encoded state as `input`, and one `choice` question named `move` with the encoder's instructions and the legal options as its choices. The option probabilities are logged like Jev's. A refusal or a choice outside the legal options counts as a failed decision.
+
+Create an API key in the OpenAI platform and set it as `OPENAI_API_KEY`, in the shell or in the gitignored `.env`.
+
+To run headless games:
+```bash
+export OPENAI_API_KEY="..."   # paste from your password manager
+npm run headless -- --policy openai:gpt-6-luna --games 3 --seed 100
+```
+
+To run in the browser, export the key in your shell before starting the development server, then open `http://localhost:5173/?model=openai:gpt-6-luna`:
+```bash
+export OPENAI_API_KEY="..."
+npm run dev
+```
+The development server forwards `/openai` to `https://api.openai.com` and adds the key from the process environment (not `.env`), so the key never reaches the page. The browser path adds a proxy hop: decisions took about 250 ms there against about 160 ms headless.
+
 ## Baselines and labeling players
 
 The repository provides scripted baselines, engine rollouts, and teacher policies:
@@ -145,7 +166,7 @@ The runner logs per-game results, prints an aggregate summary line (`meanPellets
 
 | Flag | Default | Description |
 |---|---|---|
-| `--policy` | `tev1:4b` | Player policy (`tev1:4b`, `tev1:0.8b`, `pacman-0.8b-qwen`, `random`, `greedy`, `jev`, `llm:<model>`, `teacher`, etc.) |
+| `--policy` | `tev1:4b` | Player policy (`tev1:4b`, `tev1:0.8b`, `pacman-0.8b-qwen`, `random`, `greedy`, `jev`, `openai:gpt-6-luna`, `llm:<model>`, `teacher`, etc.) |
 | `--base-url` | `VITE_DECISION_BASE_URL`, else `http://localhost:11434` | Decision endpoint for model policies |
 | `--encoder` | `features` | State encoder (`features`, `ascii-window`, `ascii-full`, `features-peek5s`) |
 | `--clock` | `realtime` | Clock mode: `realtime` charges decision latency in elapsed ticks; `lockstep` pauses the game for each answer |
